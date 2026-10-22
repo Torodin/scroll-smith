@@ -1,29 +1,34 @@
-# Vite+ Monorepo Starter
+# Scroll Smith
 
-A starter for creating a Vite+ monorepo.
+A self-hosted D&D 5.5 character planner and print-and-play tool for generating physical sheets and card decks (spells, items and features).
 
-## Development
+## Tech Stack
 
-- Check everything is ready:
+- **Toolchain:** Vite+ + pnpm
+- **Framework:** React + Vite + TypeScript
+- **Styling:** Tailwind v4
 
-```bash
-vp run ready
-```
+## Getting Started
 
-- Run the tests:
+### Prerequisites
 
-```bash
-vp run -r test
-```
+- Node.js (v20+ recommended)
+- pnpm
+- Vite+
 
-- Build the monorepo:
-
-```bash
-vp run -r build
-```
-
-- Run the development server:
+### Installation & Run
 
 ```bash
-vp run dev
+vp install
+vp run dev:api
+vp run dev:web
 ```
+
+## Development Status
+
+| Phase  | Milestone         | Focus                                    |     Status     |
+| :----: | :---------------- | :--------------------------------------- | :------------: |
+| **01** | Data & Engine     | Types, 5.5 calculations, IndexedDB store | 🟡 In Progress |
+| **02** | Print Layouts     | A4 3×3 grid, card templates              |   ⚪ Planned   |
+| **03** | Builder UI        | Split-screen editor, card queue selector |   ⚪ Planned   |
+| **04** | SRD Data & Polish | Data import and other features           |   ⚪ Planned   |
