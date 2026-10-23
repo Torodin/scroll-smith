@@ -1,3 +1,7 @@
+## Project context
+
+Scroll Smith is a self-hosted D&D 5.5e (2024) character-management app focused on guided character creation, leveling, and printable mechanics cards. See [docs/product-brief.md](docs/product-brief.md) for the intended users, scope, principles, technical direction, and longer-term ideas. Treat integrations and multi-user hosting as future directions unless a task says otherwise.
+
 <!--VITE PLUS START-->
 
 # Using Vite+, the Unified Toolchain for the Web
