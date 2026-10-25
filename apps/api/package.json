@@ -8,14 +8,19 @@
     "build": "vp pack",
     "start": "node dist/index.mjs",
     "test": "vp test",
-    "check": "vp check"
+    "check": "vp check",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",
+    "better-sqlite3": "catalog:",
+    "drizzle-orm": "catalog:",
     "hono": "^4.9.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "catalog:",
     "@types/node": "catalog:",
+    "drizzle-kit": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   }

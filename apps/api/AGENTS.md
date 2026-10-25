@@ -1,0 +1,21 @@
+## API architecture (apps/api)
+
+- **Stack:** Hono on Node, SQLite via Drizzle ORM + better-sqlite3.
+- **Layout:** feature modules under `apps/api/src/modules/<feature>/`:
+  - `<feature>.routes.ts`: the "controller". A small `Hono` router that handles HTTP only (parsing, validation, status codes). No business logic or SQL.
+  - `<feature>.service.ts`: business logic and DB access. No Hono imports. Takes `Db` through its constructor.
+  - `<feature>.schema.ts`: zod schemas for request validation.
+- **Routes:** don't write Rails-style controller classes. Chain methods on the router (`new Hono().get(...).post(...)`) so types are preserved for the `hc<AppType>()` RPC client. Validate input with `@hono/zod-validator`.
+- **Composition:** `src/app.ts` exports `createApp(db: Db)`, which mounts each module with `.route()`, and exports `type AppType`. `src/index.ts` calls `createApp(createDb())`. Don't use module-level singletons for services or the DB.
+- **Database:**
+  - `src/db/schema.ts` holds the Drizzle tables.
+  - `src/db/client.ts` exports `createDb(path?)`. It enables WAL and `foreign_keys`, and runs migrations on startup.
+  - The path comes from `DB_PATH` (default `./data/scroll-smith.db`).
+  - Only services touch the DB.
+- **Migrations:** after changing `schema.ts`, run `drizzle-kit generate` (`db:generate` script) and commit the `drizzle/` folder. Never edit generated migrations by hand.
+- **Errors:** services throw `HTTPException` or typed errors, and a single `app.onError` maps them to responses.
+- **Tests:**
+  - Unit-test services against `createDb(":memory:")`.
+  - Test routes with `createApp(createDb(":memory:")).request(...)`.
+  - Each test gets its own DB.
+- **Git:** ignore `data/` and `*.db`, `*.db-wal`, `*.db-shm`.

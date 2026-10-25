@@ -29,6 +29,12 @@ dist-ssr
 *.sln
 *.sw?
 
+# SQLite databases
+data/
+*.db
+*.db-wal
+*.db-shm
+
 # AI agent worktrees
 .claude/worktrees/
 !.vscode/
