@@ -14,7 +14,7 @@ const migrationsFolder = [resolve(here, "../../drizzle"), resolve(here, "../driz
   existsSync(p),
 )!;
 
-export function createDb(path = process.env.DB_PATH ?? "./data/scroll-smith.db"): Db {
+export function createDb(path = process.env.DB_FILE_NAME ?? "./data/scroll-smith.db"): Db {
   if (path !== ":memory:") {
     mkdirSync(dirname(resolve(path)), { recursive: true });
   }

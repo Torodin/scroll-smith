@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/index.ts",
+    "dev": "node --env-file-if-exists=.env --watch src/index.ts",
     "build": "vp pack",
-    "start": "node dist/index.mjs",
+    "start": "node --env-file-if-exists=.env dist/index.mjs",
     "test": "vp test",
     "check": "vp check",
     "db:generate": "drizzle-kit generate"

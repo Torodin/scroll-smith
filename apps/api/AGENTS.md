@@ -10,7 +10,7 @@
 - **Database:**
   - `src/db/schema.ts` holds the Drizzle tables.
   - `src/db/client.ts` exports `createDb(path?)`. It enables WAL and `foreign_keys`, and runs migrations on startup.
-  - The path comes from `DB_PATH` (default `./data/scroll-smith.db`).
+  - The path comes from `DB_FILE_NAME` (default `./data/scroll-smith.db`).
   - Only services touch the DB.
 - **Migrations:** after changing `schema.ts`, run `drizzle-kit generate` (`db:generate` script) and commit the `drizzle/` folder. Never edit generated migrations by hand.
 - **Errors:** services throw `HTTPException` or typed errors, and a single `app.onError` maps them to responses.
