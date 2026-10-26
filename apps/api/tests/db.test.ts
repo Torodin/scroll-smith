@@ -86,13 +86,16 @@ test("migrations apply and character content relations are usable", async () => 
   expect(character?.inventory[0]?.quantity).toBe(1);
   expect(character?.spells[0]?.spell.name).toBe("Guidance");
   expect(character?.spells[0]?.prepared).toBe(true);
-  const speciesWithTraits = await db.query.species.findFirst({ with: { traits: true } });
+  const speciesWithTraits = await db.query.species.findFirst({
+    where: { id: speciesId },
+    with: { traits: true },
+  });
   expect(speciesWithTraits?.traits[0]?.name).toBe("Resourceful");
 });
 
 test("each in-memory db is isolated", () => {
   const firstDb = createDb(":memory:");
-  firstDb.insert(characters).values({ name: "A" }).run();
+  firstDb.insert(characters).values({ name: "A", speciesId: 1, backgroundId: 1, classId: 1 }).run();
   expect(firstDb.select().from(characters).all()[0]?.str).toBe(10);
   expect(createDb(":memory:").select().from(characters).all()).toHaveLength(0);
 });

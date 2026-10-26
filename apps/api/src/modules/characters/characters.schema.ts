@@ -1,14 +1,14 @@
 import { z } from "zod";
 
 const ability = z.number().int().min(1).max(30);
-const refId = z.number().int().positive().nullable();
+const refId = z.number().int().positive();
 
 export const createCharacterSchema = z.object({
   name: z.string().trim().min(1).max(100),
   level: z.number().int().min(1).max(20).default(1),
-  speciesId: refId.optional(),
-  backgroundId: refId.optional(),
-  classId: refId.optional(),
+  speciesId: refId,
+  backgroundId: refId,
+  classId: refId,
   str: ability.default(10),
   dex: ability.default(10),
   con: ability.default(10),
@@ -33,8 +33,6 @@ export const updateCharacterSchema = z
     cha: ability.optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "Body must not be empty" });
-
-export const idParamSchema = z.object({ id: z.coerce.number().int().positive() });
 
 export type CreateCharacter = z.infer<typeof createCharacterSchema>;
 export type UpdateCharacter = z.infer<typeof updateCharacterSchema>;

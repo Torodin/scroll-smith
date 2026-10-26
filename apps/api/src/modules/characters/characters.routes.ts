@@ -1,10 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import {
-  createCharacterSchema,
-  idParamSchema,
-  updateCharacterSchema,
-} from "./characters.schema.ts";
+import { idParamSchema } from "../../shared/params.schema.ts";
+import { createCharacterSchema, updateCharacterSchema } from "./characters.schema.ts";
 import type { CharactersService } from "./characters.service.ts";
 
 export function createCharactersRoutes(service: CharactersService) {

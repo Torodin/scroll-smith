@@ -60,9 +60,15 @@ export const characters = sqliteTable("characters", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   level: integer("level", { mode: "number" }).default(1),
-  speciesId: integer("species_id").references(() => species.id),
-  backgroundId: integer("background_id").references(() => backgrounds.id),
-  classId: integer("class_id").references(() => classes.id),
+  speciesId: integer("species_id")
+    .notNull()
+    .references(() => species.id),
+  backgroundId: integer("background_id")
+    .notNull()
+    .references(() => backgrounds.id),
+  classId: integer("class_id")
+    .notNull()
+    .references(() => classes.id),
   str: integer("str").notNull().default(10),
   dex: integer("dex").notNull().default(10),
   con: integer("con").notNull().default(10),
