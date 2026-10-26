@@ -14,13 +14,13 @@
   "dependencies": {
     "@hono/node-server": "^1.19.0",
     "better-sqlite3": "catalog:",
-    "drizzle-orm": "catalog:",
+    "drizzle-orm": "1.0.0-rc.5",
     "hono": "^4.9.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "catalog:",
     "@types/node": "catalog:",
-    "drizzle-kit": "catalog:",
+    "drizzle-kit": "1.0.0-rc.5",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   }
