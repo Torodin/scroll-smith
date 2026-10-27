@@ -1,15 +1,20 @@
+import { useState } from "react";
 import type { DashboardData } from "../core/types";
+import DeleteCharacterDialog from "./DeleteCharacterDialog";
 import { optionName } from "./option-name";
 
 function CharacterDetail({
   data,
   characterId,
   onBack,
+  onDelete,
 }: {
   data: DashboardData;
   characterId: number;
   onBack: () => void;
+  onDelete: (characterId: number) => Promise<void>;
 }) {
+  const [confirming, setConfirming] = useState(false);
   const character = data.characters.find((item) => item.id === characterId);
 
   if (!character) {
@@ -51,7 +56,17 @@ function CharacterDetail({
           </p>
         </div>
         <span className="level-pill detail-level">Level {character.level}</span>
+        <button className="button button-danger" type="button" onClick={() => setConfirming(true)}>
+          Delete character
+        </button>
       </div>
+      {confirming ? (
+        <DeleteCharacterDialog
+          name={character.name}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => onDelete(character.id)}
+        />
+      ) : null}
 
       <div className="detail-grid">
         <section className="detail-panel">

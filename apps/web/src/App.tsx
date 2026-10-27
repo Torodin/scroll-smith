@@ -51,6 +51,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(message);
   }
 
+  if (response.status === 204) return undefined as T;
+
   return response.json() as Promise<T>;
 }
 
@@ -105,6 +107,17 @@ function App() {
     );
     setPage({ name: "detail", characterId: character.id });
     return character;
+  };
+
+  const deleteCharacter = async (characterId: number) => {
+    await request<void>(`/characters/${characterId}`, { method: "DELETE" });
+
+    setData((current) =>
+      current
+        ? { ...current, characters: current.characters.filter((item) => item.id !== characterId) }
+        : current,
+    );
+    setPage({ name: "dashboard" });
   };
 
   return (
@@ -163,6 +176,7 @@ function App() {
               data={data}
               characterId={page.characterId}
               onBack={() => setPage({ name: "dashboard" })}
+              onDelete={deleteCharacter}
             />
           )
         ) : null}

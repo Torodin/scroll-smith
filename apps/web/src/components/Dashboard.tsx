@@ -44,9 +44,9 @@ function Dashboard({
         <div className="character-grid">
           {data.characters.map((character) => (
             <button
+              key={character.id}
               className="character-card"
               type="button"
-              key={character.id}
               onClick={() => onSelect(character.id)}
               aria-label={`View ${character.name}, level ${character.level} ${optionName(data.classes, character.classId)}`}
             >
