@@ -29,6 +29,38 @@ export const backgrounds = sqliteTable("backgrounds", {
   description: text("description").notNull(),
 });
 
+export type BackgroundAbilityScore =
+  | "Strength"
+  | "Dexterity"
+  | "Constitution"
+  | "Intelligence"
+  | "Wisdom"
+  | "Charisma";
+
+export type BackgroundToolProficiency =
+  | { type: "specific"; name: string }
+  | { type: "choice"; category: string };
+
+export type BackgroundEquipment = {
+  package: { items: { item: string; quantity: number }[]; gold: number };
+  alternative: { amount: number; currency: "GP" };
+};
+
+export const backgroundDetails = sqliteTable("background_details", {
+  backgroundId: integer("background_id")
+    .primaryKey()
+    .references(() => backgrounds.id),
+  abilityScores: text("ability_scores", { mode: "json" })
+    .$type<BackgroundAbilityScore[]>()
+    .notNull(),
+  feat: text("feat").notNull(),
+  skillProficiencies: text("skill_proficiencies", { mode: "json" }).$type<string[]>().notNull(),
+  toolProficiency: text("tool_proficiency", { mode: "json" })
+    .$type<BackgroundToolProficiency>()
+    .notNull(),
+  equipment: text("equipment", { mode: "json" }).$type<BackgroundEquipment>().notNull(),
+});
+
 export const classes = sqliteTable("classes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
@@ -185,6 +217,7 @@ export const characterSpells = sqliteTable(
 export const relations = defineRelations(
   {
     backgrounds,
+    backgroundDetails,
     characterSpeciesChoices,
     characterItems,
     characterSpells,
@@ -200,6 +233,18 @@ export const relations = defineRelations(
     spells,
   },
   (r) => ({
+    backgrounds: {
+      details: r.one.backgroundDetails({
+        from: r.backgrounds.id,
+        to: r.backgroundDetails.backgroundId,
+      }),
+    },
+    backgroundDetails: {
+      background: r.one.backgrounds({
+        from: r.backgroundDetails.backgroundId,
+        to: r.backgrounds.id,
+      }),
+    },
     characters: {
       background: r.one.backgrounds({
         from: r.characters.backgroundId,
