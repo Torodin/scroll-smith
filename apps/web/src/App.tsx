@@ -6,6 +6,7 @@ import type {
   ClassSummary,
   DashboardData,
   SpeciesOption,
+  SpellOption,
 } from "./core/types";
 import CharacterCreation from "./components/CharacterCreation";
 import type { CharacterCreationInput } from "./components/CharacterCreation";
@@ -170,6 +171,9 @@ function App() {
               onCancel={() => setPage({ name: "dashboard" })}
               onCreate={createCharacter}
               loadClass={(id) => request<ClassDetail>(`/classes/${id}`)}
+              loadSpells={(classId) =>
+                request<SpellOption[]>(`/spells?classId=${classId}&maxLevel=1`)
+              }
             />
           ) : (
             <CharacterDetail

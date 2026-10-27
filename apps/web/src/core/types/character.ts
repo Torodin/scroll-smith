@@ -16,5 +16,6 @@ export type Character = {
   skillProficiencies: string[];
   toolProficiencies: string[];
   inventory: { itemId: number; name: string; quantity: number; source: string | null }[];
+  spells: { spellId: number; name: string; level: number; school: string; prepared: boolean }[];
   createdAt: string;
 };

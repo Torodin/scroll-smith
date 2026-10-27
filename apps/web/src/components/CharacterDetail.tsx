@@ -140,6 +140,20 @@ function CharacterDetail({
             <p className="species-empty">No items.</p>
           )}
         </section>
+
+        {character.spells?.length ? (
+          <section className="detail-panel">
+            <p className="eyebrow">Spells</p>
+            <ul className="species-empty">
+              {character.spells.map((spell) => (
+                <li key={spell.spellId}>
+                  {spell.name} · {spell.level === 0 ? "Cantrip" : `Level ${spell.level}`}
+                  {spell.level > 0 && !spell.prepared ? " · in spellbook" : ""}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </div>
     </section>
   );

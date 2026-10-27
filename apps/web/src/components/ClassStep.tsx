@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import type { ClassChoicesInput, ClassDetail, DashboardData } from "../core/types";
+import type { ClassChoicesInput, ClassDetail, DashboardData, SpellOption } from "../core/types";
+import SpellModal from "./SpellModal";
 
 export type ClassSelection = {
   classId: string;
@@ -7,8 +8,9 @@ export type ClassSelection = {
   tools: string[];
   expertise: string[];
   weaponMasteries: string[];
-  cantrips: string[];
-  preparedSpells: string[];
+  cantrips: number[];
+  spellbook: number[];
+  preparedSpells: number[];
   equipment: string;
   featureChoices: Record<number, number>;
 };
@@ -20,6 +22,7 @@ export const emptyClassSelection: ClassSelection = {
   expertise: [],
   weaponMasteries: [],
   cantrips: [],
+  spellbook: [],
   preparedSpells: [],
   equipment: "",
   featureChoices: {},
@@ -115,14 +118,13 @@ export function validateClassSelection(
   );
   if (missingGroup) return `Choose an option for ${missingGroup.name}.`;
   const cantrips = cantripCount(detail, selection);
-  const filled = (values: string[], count: number) =>
-    values.slice(0, count).filter((value) => value.trim()).length === count &&
-    new Set(values.slice(0, count).map((value) => value.trim().toLowerCase())).size === count;
-  if (!filled(selection.cantrips, cantrips)) return `Name ${cantrips} different cantrips.`;
-  const prepared = levelOneCount(detail, "Prepared Spells");
-  if (!filled(selection.preparedSpells, prepared)) {
-    return `Name ${prepared} different prepared spells.`;
+  if (selection.cantrips.slice(0, cantrips).length !== cantrips) {
+    return `Choose ${cantrips} cantrips.`;
   }
+  const spellbook = detail.spellbookCount;
+  if (selection.spellbook.length !== spellbook) return `Choose ${spellbook} spellbook spells.`;
+  const prepared = levelOneCount(detail, "Prepared Spells");
+  if (selection.preparedSpells.length !== prepared) return `Choose ${prepared} prepared spells.`;
   if (!selection.equipment) return "Choose a starting equipment option.";
   if (selection.skills.some((skill) => backgroundSkills.includes(skill))) {
     return "Class skills cannot repeat your background skills.";
@@ -135,14 +137,14 @@ export function buildClassChoices(
   selection: ClassSelection,
 ): ClassChoicesInput {
   const cantrips = cantripCount(detail, selection);
-  const prepared = levelOneCount(detail, "Prepared Spells");
   return {
     skills: selection.skills,
     tools: selection.tools,
     expertise: selection.expertise,
     weaponMasteries: selection.weaponMasteries,
-    cantrips: selection.cantrips.slice(0, cantrips).map((spell) => spell.trim()),
-    preparedSpells: selection.preparedSpells.slice(0, prepared).map((spell) => spell.trim()),
+    cantrips: selection.cantrips.slice(0, cantrips),
+    spellbook: selection.spellbook,
+    preparedSpells: selection.preparedSpells,
     equipment: selection.equipment,
     featureChoices: detail.choiceGroups.map((group) => ({
       choiceGroupId: group.id,
@@ -201,38 +203,57 @@ function PickList({
   );
 }
 
-function NameInputs({
-  legend,
-  count,
-  value,
-  onChange,
+function SpellSummary({
+  detail,
+  selection,
+  spells,
+  onOpen,
 }: {
-  legend: string;
-  count: number;
-  value: string[];
-  onChange: (next: string[]) => void;
+  detail: ClassDetail;
+  selection: ClassSelection;
+  spells: SpellOption[] | null;
+  onOpen: () => void;
 }) {
-  if (count === 0) return null;
+  const cantrips = cantripCount(detail, selection);
+  const prepared = levelOneCount(detail, "Prepared Spells");
+  if (cantrips + prepared + detail.spellbookCount === 0) return null;
+  const names = (ids: number[]) =>
+    ids.map((id) => spells?.find((spell) => spell.id === id)?.name ?? "…").join(", ");
+  const chosen = [
+    ...selection.cantrips.slice(0, cantrips),
+    ...selection.spellbook,
+    ...selection.preparedSpells,
+  ];
   return (
     <fieldset className="species-choice-group">
       <legend className="species-choice-legend">
-        {legend} · name {count}
+        {detail.spellbookCount > 0 ? "Spellbook" : "Spells"}
       </legend>
-      <div className="class-name-inputs">
-        {Array.from({ length: count }, (_, index) => (
-          <input
-            aria-label={`${legend} ${index + 1}`}
-            key={index}
-            maxLength={100}
-            onChange={(event) => {
-              const next = Array.from({ length: count }, (_, i) => value[i] ?? "");
-              next[index] = event.target.value;
-              onChange(next);
-            }}
-            value={value[index] ?? ""}
-          />
-        ))}
-      </div>
+      <ul className="spell-summary">
+        <li>
+          Cantrips {selection.cantrips.slice(0, cantrips).length}/{cantrips}:{" "}
+          {names(selection.cantrips.slice(0, cantrips)) || "none chosen"}
+        </li>
+        {detail.spellbookCount > 0 ? (
+          <li>
+            Spellbook {selection.spellbook.length}/{detail.spellbookCount}:{" "}
+            {names(selection.spellbook) || "none chosen"}
+          </li>
+        ) : null}
+        <li>
+          Prepared {selection.preparedSpells.length}/{prepared}:{" "}
+          {names(selection.preparedSpells) || "none chosen"}
+        </li>
+      </ul>
+      <button className="button" disabled={!spells} onClick={onOpen} type="button">
+        {!spells
+          ? "Loading spells..."
+          : chosen.length > 0
+            ? "Edit spells"
+            : detail.spellbookCount > 0
+              ? "Manage spellbook"
+              : "Choose spells"}
+      </button>
     </fieldset>
   );
 }
@@ -240,6 +261,7 @@ function NameInputs({
 function ClassStep({
   classes,
   loadClass,
+  loadSpells,
   selection,
   backgroundSkills,
   onChange,
@@ -247,18 +269,38 @@ function ClassStep({
 }: {
   classes: DashboardData["classes"];
   loadClass: (id: number) => Promise<ClassDetail>;
+  loadSpells: (classId: number) => Promise<SpellOption[]>;
   selection: ClassSelection;
   backgroundSkills: string[];
   onChange: (next: ClassSelection) => void;
   onDetail: (detail: ClassDetail | null) => void;
 }) {
   const [cache, setCache] = useState<Record<string, ClassDetail>>({});
+  const [spellCache, setSpellCache] = useState<Record<string, SpellOption[]>>({});
+  const [spellsOpen, setSpellsOpen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const detail = cache[selection.classId] ?? null;
+  const spells = spellCache[selection.classId] ?? null;
 
   useEffect(() => {
     onDetail(detail);
   }, [detail, onDetail]);
+
+  useEffect(() => {
+    if (!detail?.spellcastingAbility || spellCache[selection.classId]) return;
+    let active = true;
+    const id = selection.classId;
+    loadSpells(Number(id))
+      .then((result) => {
+        if (active) setSpellCache((current) => ({ ...current, [id]: result }));
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError(error instanceof Error ? error.message : "Could not load spells.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [detail, selection.classId, spellCache, loadSpells]);
 
   useEffect(() => {
     if (!selection.classId || cache[selection.classId]) return;
@@ -508,18 +550,27 @@ function ClassStep({
                   </ul>
                 </fieldset>
               ))}
-              <NameInputs
-                legend="Cantrip"
-                count={cantripCount(detail, selection)}
-                value={selection.cantrips}
-                onChange={(cantrips) => update({ cantrips })}
+              <SpellSummary
+                detail={detail}
+                onOpen={() => setSpellsOpen(true)}
+                selection={selection}
+                spells={spells}
               />
-              <NameInputs
-                legend="Prepared spell"
-                count={levelOneCount(detail, "Prepared Spells")}
-                value={selection.preparedSpells}
-                onChange={(preparedSpells) => update({ preparedSpells })}
-              />
+              {spellsOpen && spells ? (
+                <SpellModal
+                  cantripCount={cantripCount(detail, selection)}
+                  onChange={(next) => update(next)}
+                  onClose={() => setSpellsOpen(false)}
+                  preparedCount={levelOneCount(detail, "Prepared Spells")}
+                  spellbookCount={detail.spellbookCount}
+                  spells={spells}
+                  value={{
+                    cantrips: selection.cantrips,
+                    spellbook: selection.spellbook,
+                    preparedSpells: selection.preparedSpells,
+                  }}
+                />
+              ) : null}
               <fieldset className="species-choice-group">
                 <legend className="species-choice-legend">Starting equipment</legend>
                 <ul className="species-choice-list">

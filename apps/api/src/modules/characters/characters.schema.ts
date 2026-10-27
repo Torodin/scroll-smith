@@ -32,8 +32,9 @@ const classChoices = z.object({
   tools: names.optional(),
   expertise: names.optional(),
   weaponMasteries: names.optional(),
-  cantrips: names.optional(),
-  preparedSpells: names.optional(),
+  cantrips: z.array(refId).optional(),
+  spellbook: z.array(refId).optional(),
+  preparedSpells: z.array(refId).optional(),
   featureChoices: speciesChoices.optional(),
 });
 

@@ -21,6 +21,14 @@ const barbarianChoices = {
 };
 const base = { ...ids, backgroundChoices: acolyteChoices, classChoices: barbarianChoices };
 
+async function spellIds(app: ReturnType<typeof createApp>, classId: number, names: string[]) {
+  const list = (await (await app.request(`/spells?classId=${classId}`)).json()) as {
+    id: number;
+    name: string;
+  }[];
+  return names.map((name) => list.find((spell) => spell.name === name)!.id);
+}
+
 test("character CRUD", async () => {
   const app = createApp(createDb(":memory:"));
 
@@ -40,8 +48,13 @@ test("character CRUD", async () => {
         skills: ["Arcana", "Deception", "History"],
         tools: ["Lute", "Drum", "Flute"],
         expertise: [],
-        cantrips: ["Vicious Mockery", "Minor Illusion"],
-        preparedSpells: ["Healing Word", "Dissonant Whispers", "Faerie Fire", "Sleep"],
+        cantrips: await spellIds(app, 2, ["Vicious Mockery", "Minor Illusion"]),
+        preparedSpells: await spellIds(app, 2, [
+          "Healing Word",
+          "Dissonant Whispers",
+          "Faerie Fire",
+          "Sleep",
+        ]),
         equipment: "gold",
       },
     }),
@@ -345,7 +358,7 @@ test("class choices are validated, recorded and replaced when the class changes"
   expect((await post({ ...barbarianChoices, skills: ["Nature", "Nature"] })).status).toBe(400);
   expect((await post({ ...barbarianChoices, weaponMasteries: ["Greataxe"] })).status).toBe(400);
   expect((await post({ ...barbarianChoices, equipment: "C" })).status).toBe(400);
-  expect((await post({ ...barbarianChoices, cantrips: ["Light"] })).status).toBe(400);
+  expect((await post({ ...barbarianChoices, cantrips: [1] })).status).toBe(400);
   expect(await (await app.request("/characters")).json()).toHaveLength(0);
 
   const barbarian = await post(barbarianChoices);
@@ -415,23 +428,50 @@ test("class choices are validated, recorded and replaced when the class changes"
   // Switch the Barbarian (id 1) to a Wizard (id 12)
   const wizardChoices = {
     skills: ["Arcana", "History"],
-    cantrips: ["Light", "Mage Hand", "Fire Bolt"],
-    preparedSpells: ["Shield", "Magic Missile", "Sleep", "Detect Magic"],
+    cantrips: await spellIds(app, 12, ["Light", "Mage Hand", "Fire Bolt"]),
+    spellbook: await spellIds(app, 12, [
+      "Shield",
+      "Magic Missile",
+      "Sleep",
+      "Detect Magic",
+      "Mage Armor",
+      "Identify",
+    ]),
+    preparedSpells: await spellIds(app, 12, ["Shield", "Magic Missile", "Sleep", "Detect Magic"]),
     equipment: "A",
   };
   const patch = (body: unknown) => app.request("/characters/1", json("PATCH", body));
   expect((await patch({ classId: 12 })).status).toBe(400);
+  const [fireball] = await spellIds(app, 12, ["Fireball"]);
+  expect(
+    (
+      await patch({
+        classId: 12,
+        classChoices: {
+          ...wizardChoices,
+          spellbook: [...wizardChoices.spellbook.slice(1), fireball],
+        },
+      })
+    ).status,
+  ).toBe(400);
+  expect(
+    (await patch({ classId: 12, classChoices: { ...wizardChoices, spellbook: [] } })).status,
+  ).toBe(400);
   const changed = await patch({ classId: 12, classChoices: wizardChoices });
   expect(changed.status).toBe(200);
   const body = (await changed.json()) as {
     inventory: { name: string }[];
     skillProficiencies: string[];
+    spells: { name: string; prepared: boolean }[];
   };
   expect(body).toMatchObject({
     classId: 12,
     gold: 13,
-    classChoices: { equipmentOption: "A", cantrips: wizardChoices.cantrips },
+    classChoices: { equipmentOption: "A" },
   });
+  expect(body.spells).toHaveLength(9);
+  expect(body.spells.find((spell) => spell.name === "Identify")?.prepared).toBe(false);
+  expect(body.spells.find((spell) => spell.name === "Shield")?.prepared).toBe(true);
   expect(body.inventory.some((i) => i.name === "Greataxe")).toBe(false);
   expect(body.skillProficiencies).not.toContain("Nature");
 

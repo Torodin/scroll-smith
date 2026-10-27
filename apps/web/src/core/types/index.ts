@@ -9,3 +9,4 @@ export type {
 export type { DashboardData } from "./dashboard-data";
 export type { NamedOption } from "./named-option";
 export type { SpeciesOption } from "./species-option";
+export type { SpellOption } from "./spell-option";

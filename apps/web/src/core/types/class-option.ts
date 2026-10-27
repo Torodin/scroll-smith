@@ -23,6 +23,7 @@ export type ClassDetail = ClassSummary & {
   skillChoiceOptions: string[];
   expertiseCount: number;
   weaponMasteryCount: number;
+  spellbookCount: number;
   startingEquipment: {
     packages: Record<string, ClassEquipmentPackage>;
     goldAlternative: number;
@@ -55,8 +56,9 @@ export type ClassChoicesInput = {
   tools: string[];
   expertise: string[];
   weaponMasteries: string[];
-  cantrips: string[];
-  preparedSpells: string[];
+  cantrips: number[];
+  spellbook: number[];
+  preparedSpells: number[];
   equipment: string;
   featureChoices: { choiceGroupId: number; choiceOptionId: number }[];
 };

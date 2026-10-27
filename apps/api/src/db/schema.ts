@@ -102,6 +102,7 @@ export const classes = sqliteTable("classes", {
     .default([]),
   expertiseCount: integer("expertise_count").notNull().default(0),
   weaponMasteryCount: integer("weapon_mastery_count").notNull().default(0),
+  spellbookCount: integer("spellbook_count").notNull().default(0),
   spellcastingAbility: text("spellcasting_ability").$type<BackgroundAbilityScore | null>(),
   startingEquipment: text("starting_equipment", { mode: "json" })
     .$type<ClassStartingEquipment>()
@@ -189,7 +190,28 @@ export const spells = sqliteTable("spells", {
   description: text("description").notNull(),
   level: integer("level").notNull(),
   school: text("school").notNull(),
+  castingTime: text("casting_time").notNull().default(""),
+  range: text("range").notNull().default(""),
+  components: text("components", { mode: "json" }).$type<string[]>().notNull().default([]),
+  material: text("material"),
+  duration: text("duration").notNull().default(""),
+  concentration: integer("concentration", { mode: "boolean" }).notNull().default(false),
+  ritual: integer("ritual", { mode: "boolean" }).notNull().default(false),
+  higherLevel: text("higher_level"),
 });
+
+export const spellClasses = sqliteTable(
+  "spell_classes",
+  {
+    spellId: integer("spell_id")
+      .notNull()
+      .references(() => spells.id),
+    classId: integer("class_id")
+      .notNull()
+      .references(() => classes.id),
+  },
+  (table) => [primaryKey({ columns: [table.spellId, table.classId] })],
+);
 
 export const speciesToFeatures = sqliteTable(
   "species_to_features",
@@ -298,8 +320,6 @@ export const characterClassSelections = sqliteTable("character_class_selections"
   tools: text("tools", { mode: "json" }).$type<string[]>().notNull(),
   expertise: text("expertise", { mode: "json" }).$type<string[]>().notNull(),
   weaponMasteries: text("weapon_masteries", { mode: "json" }).$type<string[]>().notNull(),
-  cantrips: text("cantrips", { mode: "json" }).$type<string[]>().notNull(),
-  preparedSpells: text("prepared_spells", { mode: "json" }).$type<string[]>().notNull(),
 });
 
 export const characterClassChoices = sqliteTable(

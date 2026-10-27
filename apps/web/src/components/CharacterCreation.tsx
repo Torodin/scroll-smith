@@ -1,6 +1,12 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import type { Character, ClassChoicesInput, ClassDetail, DashboardData } from "../core/types";
+import type {
+  Character,
+  ClassChoicesInput,
+  ClassDetail,
+  DashboardData,
+  SpellOption,
+} from "../core/types";
 import ClassStep, {
   buildClassChoices,
   emptyClassSelection,
@@ -30,11 +36,13 @@ function CharacterCreation({
   onCancel,
   onCreate,
   loadClass,
+  loadSpells,
 }: {
   data: DashboardData;
   onCancel: () => void;
   onCreate: (input: CharacterCreationInput) => Promise<Character>;
   loadClass: (id: number) => Promise<ClassDetail>;
+  loadSpells: (classId: number) => Promise<SpellOption[]>;
 }) {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
@@ -511,6 +519,7 @@ function CharacterCreation({
               backgroundSkills={backgroundSkills}
               classes={data.classes}
               loadClass={loadClass}
+              loadSpells={loadSpells}
               onChange={(next) => {
                 setClassSelection(next);
                 setError(null);

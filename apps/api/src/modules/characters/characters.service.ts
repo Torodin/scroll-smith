@@ -19,6 +19,8 @@ import {
   classes,
   classLevels,
   items,
+  spellClasses,
+  spells,
   speciesChoiceGroups,
   speciesChoiceOptions,
   relations,
@@ -47,6 +49,7 @@ type ResolvedClass = {
   choices: ClassChoices;
   featureChoices: SpeciesChoice[];
   goldGranted: number;
+  spellRows: { spellId: number; prepared: boolean }[];
 };
 
 const abilityKeys: Record<BackgroundAbilityScore, AbilityKey> = {
@@ -457,14 +460,13 @@ export class CharactersService {
       .get();
     const cantripCount = Number(levelOne?.columns.Cantrips ?? 0) + extraCantrips;
     const preparedCount = Number(levelOne?.columns["Prepared Spells"] ?? 0);
-    const cantrips = choices.cantrips ?? [];
-    const prepared = choices.preparedSpells ?? [];
-    if (cantrips.length !== cantripCount || !unique(cantrips)) {
-      throw this.invalidClassChoices(`Choose ${cantripCount} different cantrips`);
-    }
-    if (prepared.length !== preparedCount || !unique(prepared)) {
-      throw this.invalidClassChoices(`Choose ${preparedCount} different prepared spells`);
-    }
+    const spellRows = this.validateSpells(tx, cls, {
+      cantrips: choices.cantrips ?? [],
+      spellbook: choices.spellbook ?? [],
+      prepared: choices.preparedSpells ?? [],
+      cantripCount,
+      preparedCount,
+    });
 
     let goldGranted: number;
     if (choices.equipment === GOLD_OPTION) {
@@ -477,7 +479,58 @@ export class CharactersService {
       goldGranted = equipmentPackage.gold;
     }
 
-    return { cls, choices, featureChoices, goldGranted };
+    return { cls, choices, featureChoices, goldGranted, spellRows };
+  }
+
+  private validateSpells(
+    tx: Transaction,
+    cls: typeof classes.$inferSelect,
+    input: {
+      cantrips: number[];
+      spellbook: number[];
+      prepared: number[];
+      cantripCount: number;
+      preparedCount: number;
+    },
+  ) {
+    const { cantrips, spellbook, prepared, cantripCount, preparedCount } = input;
+    const hasSpellbook = cls.spellbookCount > 0;
+    const unique = (values: number[]) => new Set(values).size === values.length;
+    const check = (ids: number[], count: number, label: string) => {
+      if (ids.length !== count || !unique(ids)) {
+        throw this.invalidClassChoices(`Choose ${count} different ${label}`);
+      }
+    };
+    check(cantrips, cantripCount, "cantrips");
+    check(prepared, preparedCount, "prepared spells");
+    if (hasSpellbook) {
+      check(spellbook, cls.spellbookCount, "spellbook spells");
+      if (prepared.some((id) => !spellbook.includes(id))) {
+        throw this.invalidClassChoices("Prepared spells must come from the spellbook");
+      }
+    } else if (spellbook.length > 0) {
+      throw this.invalidClassChoices("This class does not have a spellbook");
+    }
+
+    const all = [...new Set([...cantrips, ...spellbook, ...prepared])];
+    if (all.length === 0) return [];
+    const onList = tx
+      .select({ id: spells.id, level: spells.level })
+      .from(spells)
+      .innerJoin(spellClasses, eq(spellClasses.spellId, spells.id))
+      .where(and(eq(spellClasses.classId, cls.id), inArray(spells.id, all)))
+      .all();
+    const levels = new Map(onList.map((spell) => [spell.id, spell.level]));
+    if (cantrips.some((id) => levels.get(id) !== 0)) {
+      throw this.invalidClassChoices("Choose cantrips from the class spell list");
+    }
+    if ([...spellbook, ...prepared].some((id) => levels.get(id) !== 1)) {
+      throw this.invalidClassChoices("Choose level 1 spells from the class spell list");
+    }
+
+    const preparedIds = new Set([...cantrips, ...prepared]);
+    const learned = hasSpellbook ? [...cantrips, ...spellbook] : [...cantrips, ...prepared];
+    return learned.map((spellId) => ({ spellId, prepared: preparedIds.has(spellId) }));
   }
 
   // Returns the extra cantrips granted by the chosen options
@@ -525,7 +578,7 @@ export class CharactersService {
   }
 
   private saveClass(tx: Transaction, characterId: number, resolved: ResolvedClass) {
-    const { cls, choices, featureChoices, goldGranted } = resolved;
+    const { cls, choices, featureChoices, goldGranted, spellRows } = resolved;
     tx.insert(characterClassSelections)
       .values({
         characterId,
@@ -535,10 +588,13 @@ export class CharactersService {
         tools: choices.tools ?? [],
         expertise: choices.expertise ?? [],
         weaponMasteries: choices.weaponMasteries ?? [],
-        cantrips: choices.cantrips ?? [],
-        preparedSpells: choices.preparedSpells ?? [],
       })
       .run();
+    if (spellRows.length > 0) {
+      tx.insert(characterSpells)
+        .values(spellRows.map((row) => ({ characterId, ...row })))
+        .run();
+    }
     if (featureChoices.length > 0) {
       tx.insert(characterClassChoices)
         .values(featureChoices.map((choice) => ({ characterId, ...choice })))
@@ -597,6 +653,7 @@ export class CharactersService {
     tx.delete(characterClassChoices)
       .where(eq(characterClassChoices.characterId, characterId))
       .run();
+    tx.delete(characterSpells).where(eq(characterSpells.characterId, characterId)).run();
     tx.delete(characterClassSelections)
       .where(eq(characterClassSelections.characterId, characterId))
       .run();
@@ -770,11 +827,22 @@ export class CharactersService {
           tools: classSelection.tools,
           expertise: classSelection.expertise,
           weaponMasteries: classSelection.weaponMasteries,
-          cantrips: classSelection.cantrips,
-          preparedSpells: classSelection.preparedSpells,
           featureChoices: classFeatureChoices,
         }
       : null;
+    const characterSpellRows = reader
+      .select({
+        spellId: spells.id,
+        name: spells.name,
+        level: spells.level,
+        school: spells.school,
+        prepared: characterSpells.prepared,
+      })
+      .from(characterSpells)
+      .innerJoin(spells, eq(spells.id, characterSpells.spellId))
+      .where(eq(characterSpells.characterId, characterId))
+      .orderBy(spells.level, spells.name)
+      .all();
     const sorted = (values: string[]) => [...new Set(values)].sort();
     return {
       speciesChoices,
@@ -784,6 +852,7 @@ export class CharactersService {
       skillProficiencies: sorted([...skillProficiencies, ...(classSelection?.skills ?? [])]),
       toolProficiencies: sorted([...toolProficiencies, ...(classSelection?.tools ?? [])]),
       inventory,
+      spells: characterSpellRows,
     };
   }
 
