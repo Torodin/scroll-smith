@@ -114,3 +114,38 @@ test("characters require and persist valid species choices", async () => {
     speciesChoices: [secondSpeciesChoice],
   });
 });
+
+test("characters require the configured number of options for multi-choice species groups", async () => {
+  const db = createDb(":memory:");
+  const app = createApp(db);
+  const choiceGroupId = Number(
+    db
+      .insert(speciesChoiceGroups)
+      .values({
+        speciesId: 7,
+        name: "Skill training",
+        description: "Choose two skills.",
+        choiceCount: 2,
+      })
+      .run().lastInsertRowid,
+  );
+  const choices = ["Perception", "Stealth", "Survival"].map((name) => {
+    const choiceOptionId = Number(
+      db
+        .insert(speciesChoiceOptions)
+        .values({ choiceGroupId, name, description: `${name} proficiency.` })
+        .run().lastInsertRowid,
+    );
+    return { choiceGroupId, choiceOptionId };
+  });
+  const create = (speciesChoices: typeof choices) =>
+    app.request("/characters", json("POST", { name: "Aria", ...base, speciesChoices }));
+
+  expect((await create(choices.slice(0, 1))).status).toBe(400);
+
+  const created = await create(choices.slice(0, 2));
+  expect(created.status).toBe(201);
+  expect(await created.json()).toMatchObject({ speciesChoices: choices.slice(0, 2) });
+
+  expect((await create(choices)).status).toBe(400);
+});

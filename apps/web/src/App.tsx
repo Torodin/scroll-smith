@@ -23,9 +23,25 @@ type NamedOption = {
   name: string;
 };
 
+type SpeciesOption = NamedOption & {
+  traits: { id: number; name: string; description: string }[];
+  choiceGroups: {
+    id: number;
+    name: string;
+    description: string;
+    choiceCount: number;
+    options: {
+      id: number;
+      name: string;
+      description: string;
+      features: { id: number; name: string; description: string }[];
+    }[];
+  }[];
+};
+
 type DashboardData = {
   characters: Character[];
-  species: NamedOption[];
+  species: SpeciesOption[];
   backgrounds: NamedOption[];
   classes: NamedOption[];
 };
@@ -37,7 +53,7 @@ const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 function fetchDashboardData(): Promise<DashboardData> {
   return Promise.all([
     request<Character[]>("/characters"),
-    request<NamedOption[]>("/species"),
+    request<SpeciesOption[]>("/species"),
     request<NamedOption[]>("/backgrounds"),
     request<NamedOption[]>("/classes"),
   ]).then(([characters, species, backgrounds, classes]) => ({
@@ -271,14 +287,35 @@ function CharacterCreation({
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [speciesId, setSpeciesId] = useState("");
+  const [speciesSelections, setSpeciesSelections] = useState<Record<number, number[]>>({});
   const [backgroundId, setBackgroundId] = useState("");
   const [classId, setClassId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const selectedSpecies = data.species.find((species) => String(species.id) === speciesId);
 
   const submitStep = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (step < 3) {
+    if (step === 2) {
+      if (!selectedSpecies) {
+        setError("Choose a species to continue.");
+        return;
+      }
+
+      const incompleteGroup = selectedSpecies.choiceGroups.find(
+        (group) => (speciesSelections[group.id] ?? []).length !== group.choiceCount,
+      );
+      if (incompleteGroup) {
+        setError(
+          `${incompleteGroup.name}: choose exactly ${incompleteGroup.choiceCount} ${
+            incompleteGroup.choiceCount === 1 ? "option" : "options"
+          } to continue.`,
+        );
+        return;
+      }
+    }
+
+    if (step < 4) {
       setStep((current) => current + 1);
       setError(null);
       return;
@@ -294,6 +331,13 @@ function CharacterCreation({
           speciesId: Number(speciesId),
           backgroundId: Number(backgroundId),
           classId: Number(classId),
+          speciesChoices:
+            selectedSpecies?.choiceGroups.flatMap((group) =>
+              (speciesSelections[group.id] ?? []).map((choiceOptionId) => ({
+                choiceGroupId: group.id,
+                choiceOptionId,
+              })),
+            ) ?? [],
         }),
       });
       onCreated(character);
@@ -316,8 +360,8 @@ function CharacterCreation({
         <p>Choose the foundations of your hero. You can build on them as you play.</p>
       </div>
 
-      <div className="stepper" aria-label={`Step ${step} of 3`}>
-        {["Identity", "Background", "Class"].map((label, index) => {
+      <div className="stepper" aria-label={`Step ${step} of 4`}>
+        {["Name", "Species", "Background", "Class"].map((label, index) => {
           const number = index + 1;
           return (
             <div className={`step ${number <= step ? "step-active" : ""}`} key={label}>
@@ -331,9 +375,9 @@ function CharacterCreation({
       <form className="form-panel" onSubmit={(event) => void submitStep(event)}>
         {step === 1 ? (
           <div className="form-step">
-            <p className="step-kicker">Step 1 of 3</p>
+            <p className="step-kicker">Step 1 of 4</p>
             <h2>Who are they?</h2>
-            <p className="form-intro">Start with a name and the people they come from.</p>
+            <p className="form-intro">Start by giving your hero a name.</p>
             <label className="field">
               <span>Character name</span>
               <input
@@ -346,26 +390,145 @@ function CharacterCreation({
                 value={name}
               />
             </label>
-            <label className="field">
-              <span>Species</span>
-              <select
-                name="species"
-                onChange={(event) => setSpeciesId(event.target.value)}
-                required
-                value={speciesId}
-              >
-                <option value="">Choose a species</option>
-                {data.species.map((species) => (
-                  <option value={species.id} key={species.id}>
-                    {species.name}
-                  </option>
-                ))}
-              </select>
-            </label>
           </div>
         ) : step === 2 ? (
+          <div className="form-step species-step">
+            <p className="step-kicker">Step 2 of 4</p>
+            <h2>Choose your species</h2>
+            <p className="form-intro">
+              Explore each species&apos; traits and distinctive choices before deciding who your
+              hero is.
+            </p>
+            <fieldset className="species-options">
+              <legend className="species-legend">Available species</legend>
+              <div className="species-grid">
+                {data.species.map((species) => (
+                  <label
+                    className={`species-card ${speciesId === String(species.id) ? "species-card-selected" : ""}`}
+                    key={species.id}
+                  >
+                    <input
+                      checked={speciesId === String(species.id)}
+                      aria-label={species.name}
+                      name="species"
+                      onChange={(event) => {
+                        setSpeciesId(event.target.value);
+                        setSpeciesSelections({});
+                        setError(null);
+                      }}
+                      required
+                      type="radio"
+                      value={species.id}
+                    />
+                    <span className="species-card-content">
+                      <strong className="species-card-name">{species.name}</strong>
+                      <span className="species-card-summary">
+                        {species.traits.length} {species.traits.length === 1 ? "trait" : "traits"}
+                        {species.choiceGroups.length > 0
+                          ? ` · ${species.choiceGroups.length} ${species.choiceGroups.length === 1 ? "choice" : "choices"}`
+                          : ""}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {selectedSpecies ? (
+                <section
+                  className="species-overview"
+                  aria-live="polite"
+                  aria-labelledby="species-overview-title"
+                >
+                  <p className="eyebrow">Species overview</p>
+                  <h3 id="species-overview-title">{selectedSpecies.name}</h3>
+                  <p className="species-overview-intro">
+                    Review the traits and choices that come with this species.
+                  </p>
+                  <div className="species-overview-sections">
+                    <div className="species-overview-section">
+                      <h4>Traits</h4>
+                      {selectedSpecies.traits.length > 0 ? (
+                        <ul className="species-trait-list">
+                          {selectedSpecies.traits.map((trait) => (
+                            <li className="species-trait" key={trait.id}>
+                              <strong>{trait.name}</strong>
+                              <span>{trait.description}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="species-empty">No additional traits listed.</p>
+                      )}
+                    </div>
+                    {selectedSpecies.choiceGroups.map((group) => (
+                      <div className="species-overview-section" key={group.id}>
+                        <fieldset className="species-choice-group">
+                          <legend className="species-choice-legend">
+                            {group.name} · choose {group.choiceCount}
+                          </legend>
+                          <p className="species-group-description">{group.description}</p>
+                          <ul className="species-choice-list">
+                            {group.options.map((option) => {
+                              const selectedOptions = speciesSelections[group.id] ?? [];
+                              const checked = selectedOptions.includes(option.id);
+                              const isMultiChoice = group.choiceCount > 1;
+
+                              return (
+                                <li className="species-choice-item" key={option.id}>
+                                  <label className="species-choice-control">
+                                    <input
+                                      checked={checked}
+                                      className="species-choice-input"
+                                      name={`species-choice-${group.id}`}
+                                      onChange={(event) => {
+                                        setSpeciesSelections((current) => {
+                                          const currentOptions = current[group.id] ?? [];
+                                          const nextOptions = isMultiChoice
+                                            ? event.target.checked
+                                              ? currentOptions.length >= group.choiceCount
+                                                ? currentOptions
+                                                : [...currentOptions, option.id]
+                                              : currentOptions.filter((id) => id !== option.id)
+                                            : [option.id];
+                                          return { ...current, [group.id]: nextOptions };
+                                        });
+                                        setError(null);
+                                      }}
+                                      type={isMultiChoice ? "checkbox" : "radio"}
+                                    />
+                                    <span className="species-choice-option">
+                                      <strong>{option.name}</strong>
+                                      <span>{option.description}</span>
+                                    </span>
+                                  </label>
+                                  {option.features.map((feature) => (
+                                    <span className="species-option-feature" key={feature.id}>
+                                      <strong>{feature.name}</strong>
+                                      <span>{feature.description}</span>
+                                    </span>
+                                  ))}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                          <p className="species-choice-status" aria-live="polite">
+                            {speciesSelections[group.id]?.length ?? 0} of {group.choiceCount}{" "}
+                            selected
+                          </p>
+                        </fieldset>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : (
+                <p className="species-overview-prompt" aria-live="polite">
+                  Choose a species to read its overview and traits.
+                </p>
+              )}
+            </fieldset>
+          </div>
+        ) : step === 3 ? (
           <div className="form-step">
-            <p className="step-kicker">Step 2 of 3</p>
+            <p className="step-kicker">Step 3 of 4</p>
             <h2>Where did they begin?</h2>
             <p className="form-intro">A background reflects the experiences that shaped them.</p>
             <label className="field">
@@ -388,7 +551,7 @@ function CharacterCreation({
           </div>
         ) : (
           <div className="form-step">
-            <p className="step-kicker">Step 3 of 3</p>
+            <p className="step-kicker">Step 4 of 4</p>
             <h2>What is their calling?</h2>
             <p className="form-intro">Choose the class that guides their adventures.</p>
             <label className="field">
@@ -447,8 +610,8 @@ function CharacterCreation({
             </button>
           )}
           <button className="button button-primary" type="submit" disabled={saving}>
-            {saving ? "Creating..." : step === 3 ? "Create character" : "Continue"}
-            {!saving && step < 3 ? <span aria-hidden="true">→</span> : null}
+            {saving ? "Creating..." : step === 4 ? "Create character" : "Continue"}
+            {!saving && step < 4 ? <span aria-hidden="true">→</span> : null}
           </button>
         </div>
       </form>

@@ -439,6 +439,229 @@ h2 {
   min-height: 260px;
 }
 
+.species-step {
+  min-height: 0;
+}
+
+.species-options {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.species-legend {
+  margin-bottom: 11px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.species-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.species-card {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 15px;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.species-card:hover {
+  border-color: var(--forest-soft);
+}
+
+.species-card-selected {
+  background: var(--forest-tint);
+  border-color: var(--forest);
+  box-shadow: 0 0 0 1px var(--forest);
+}
+
+.species-card input {
+  flex: 0 0 auto;
+  margin: 3px 0 0;
+  accent-color: var(--forest);
+}
+
+.species-card input:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.species-card-content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.species-card-name {
+  color: var(--ink);
+  font: 600 18px/1.2 var(--serif);
+}
+
+.species-card-summary {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.species-overview {
+  margin-top: 20px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.species-overview .eyebrow {
+  margin-bottom: 5px;
+}
+
+.species-overview h3 {
+  margin: 0;
+  color: var(--ink);
+  font: 600 23px/1.2 var(--serif);
+}
+
+.species-overview-intro {
+  margin: 7px 0 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.species-overview-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.species-overview-section h4 {
+  margin: 0 0 8px;
+  color: var(--forest);
+  font-size: 12px;
+}
+
+.species-choice-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.species-choice-legend {
+  padding: 0;
+  color: var(--forest);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.species-trait-list,
+.species-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.species-trait,
+.species-choice-option,
+.species-option-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.species-trait > strong,
+.species-choice-option > strong,
+.species-option-feature > strong {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.species-empty,
+.species-group-description {
+  margin: 0 0 9px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.species-choice-item {
+  padding-left: 9px;
+  border-left: 2px solid var(--forest-soft);
+}
+
+.species-choice-control {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.species-choice-input {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  accent-color: var(--forest);
+}
+
+.species-choice-input:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.species-choice-option > strong {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.species-choice-status {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.species-option-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 6px 0 0 25px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.species-option-feature > strong {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Preserve the selected option as a distinct row within each choice group. */
+.species-choice-item + .species-choice-item {
+  margin-top: 9px;
+}
+
 .step-kicker {
   margin-bottom: 9px;
   letter-spacing: 1.1px;
@@ -660,6 +883,10 @@ h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .species-grid {
+    grid-template-columns: 1fr;
+  }
+
   .detail-grid {
     grid-template-columns: 1fr;
   }
@@ -689,6 +916,10 @@ h2 {
   }
 
   .character-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .species-overview-sections {
     grid-template-columns: 1fr;
   }
 
