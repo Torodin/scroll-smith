@@ -11,6 +11,8 @@ export type CharacterCreationInput = {
   speciesChoices: { choiceGroupId: number; choiceOptionId: number }[];
 };
 
+const gamingSets = ["Dice Set", "Dragonchess Set", "Playing Card Set", "Three-Dragon Ante Set"];
+
 function CharacterCreation({
   data,
   onCancel,
@@ -28,10 +30,34 @@ function CharacterCreation({
   const [classId, setClassId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [abilityMode, setAbilityMode] = useState<"split" | "even">("split");
+  const [plusTwo, setPlusTwo] = useState("");
+  const [plusOne, setPlusOne] = useState("");
+  const [gamingSet, setGamingSet] = useState("");
   const selectedSpecies = data.species.find((species) => String(species.id) === speciesId);
+  const selectedBackground = data.backgrounds.find(
+    (background) => String(background.id) === backgroundId,
+  );
+  const props = selectedBackground?.properties ?? null;
 
   const submitStep = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (step === 3) {
+      if (!selectedBackground) {
+        setError("Choose a background to continue.");
+        return;
+      }
+      if (props) {
+        if (abilityMode === "split" && (!plusTwo || !plusOne || plusTwo === plusOne)) {
+          setError("Choose two different abilities for the +2 and +1 increases.");
+          return;
+        }
+        if (props.toolProficiency.type === "choice" && !gamingSet) {
+          setError(`Choose a ${props.toolProficiency.category} to continue.`);
+          return;
+        }
+      }
+    }
     if (step === 2) {
       if (!selectedSpecies) {
         setError("Choose a species to continue.");
@@ -267,23 +293,164 @@ function CharacterCreation({
             <p className="step-kicker">Step 3 of 4</p>
             <h2>Where did they begin?</h2>
             <p className="form-intro">A background reflects the experiences that shaped them.</p>
-            <label className="field">
-              <span>Background</span>
-              <select
-                autoFocus
-                name="background"
-                onChange={(event) => setBackgroundId(event.target.value)}
-                required
-                value={backgroundId}
-              >
-                <option value="">Choose a background</option>
+            <fieldset className="species-options">
+              <legend className="species-legend">Available backgrounds</legend>
+              <div className="species-grid">
                 {data.backgrounds.map((background) => (
-                  <option value={background.id} key={background.id}>
-                    {background.name}
-                  </option>
+                  <label
+                    className={`species-card ${backgroundId === String(background.id) ? "species-card-selected" : ""}`}
+                    key={background.id}
+                  >
+                    <input
+                      aria-label={background.name}
+                      checked={backgroundId === String(background.id)}
+                      name="background"
+                      onChange={(event) => {
+                        setBackgroundId(event.target.value);
+                        setAbilityMode("split");
+                        setPlusTwo("");
+                        setPlusOne("");
+                        setGamingSet("");
+                        setError(null);
+                      }}
+                      required
+                      type="radio"
+                      value={background.id}
+                    />
+                    <span className="species-card-content">
+                      <strong className="species-card-name">{background.name}</strong>
+                      {background.properties ? (
+                        <span className="species-card-summary">
+                          {background.properties.feat} ·{" "}
+                          {background.properties.skillProficiencies.join(", ")}
+                        </span>
+                      ) : null}
+                    </span>
+                  </label>
                 ))}
-              </select>
-            </label>
+              </div>
+              {selectedBackground ? (
+                <section
+                  className="species-overview"
+                  aria-live="polite"
+                  aria-labelledby="background-overview-title"
+                >
+                  <p className="eyebrow">Background overview</p>
+                  <h3 id="background-overview-title">{selectedBackground.name}</h3>
+                  <p className="species-overview-intro">{selectedBackground.description}</p>
+                  {props ? (
+                    <div className="species-overview-sections">
+                      <div className="species-overview-section">
+                        <h4>Origin feat</h4>
+                        <p className="species-empty">{props.feat}</p>
+                        <h4>Skill proficiencies</h4>
+                        <p className="species-empty">{props.skillProficiencies.join(", ")}</p>
+                        <h4>Tool proficiency</h4>
+                        {props.toolProficiency.type === "specific" ? (
+                          <p className="species-empty">{props.toolProficiency.name}</p>
+                        ) : (
+                          <label className="field">
+                            <span>Choose one {props.toolProficiency.category}</span>
+                            <select
+                              name="gaming-set"
+                              onChange={(event) => setGamingSet(event.target.value)}
+                              value={gamingSet}
+                            >
+                              <option value="">Choose a set</option>
+                              {gamingSets.map((set) => (
+                                <option key={set} value={set}>
+                                  {set}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+                      </div>
+                      <div className="species-overview-section">
+                        <h4>Ability score increases</h4>
+                        <div className="background-ability-mode" role="radiogroup">
+                          <label>
+                            <input
+                              checked={abilityMode === "split"}
+                              name="ability-mode"
+                              onChange={() => setAbilityMode("split")}
+                              type="radio"
+                            />{" "}
+                            +2 and +1
+                          </label>
+                          <label>
+                            <input
+                              checked={abilityMode === "even"}
+                              name="ability-mode"
+                              onChange={() => setAbilityMode("even")}
+                              type="radio"
+                            />{" "}
+                            +1 to all three
+                          </label>
+                        </div>
+                        {abilityMode === "split" ? (
+                          <div className="background-ability-split">
+                            <label className="field">
+                              <span>+2 to</span>
+                              <select
+                                name="ability-plus-two"
+                                onChange={(event) => setPlusTwo(event.target.value)}
+                                value={plusTwo}
+                              >
+                                <option value="">Choose an ability</option>
+                                {props.abilityScores.map((ability) => (
+                                  <option key={ability} value={ability}>
+                                    {ability}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="field">
+                              <span>+1 to</span>
+                              <select
+                                name="ability-plus-one"
+                                onChange={(event) => setPlusOne(event.target.value)}
+                                value={plusOne}
+                              >
+                                <option value="">Choose an ability</option>
+                                {props.abilityScores.map((ability) => (
+                                  <option key={ability} value={ability}>
+                                    {ability}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          </div>
+                        ) : (
+                          <p className="species-empty">{props.abilityScores.join(", ")}</p>
+                        )}
+                        <p className="species-empty">
+                          Choices are not saved yet. No score can rise above 20.
+                        </p>
+                        <h4>Equipment</h4>
+                        <p className="species-empty">
+                          <strong>Option A:</strong>{" "}
+                          {[
+                            ...props.equipment.package.items.map((entry) =>
+                              entry.quantity > 1 ? `${entry.quantity} ${entry.item}` : entry.item,
+                            ),
+                            `${props.equipment.package.gold} GP`,
+                          ].join(", ")}
+                        </p>
+                        <p className="species-empty">
+                          <strong>Option B:</strong> {props.equipment.alternative.amount}{" "}
+                          {props.equipment.alternative.currency}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                </section>
+              ) : (
+                <p className="species-overview-prompt" aria-live="polite">
+                  Choose a background to read its details.
+                </p>
+              )}
+            </fieldset>
           </div>
         ) : (
           <div className="form-step">

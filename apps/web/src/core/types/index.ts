@@ -1,3 +1,4 @@
+export type { AbilityName, BackgroundOption } from "./background-option";
 export type { Character } from "./character";
 export type { DashboardData } from "./dashboard-data";
 export type { NamedOption } from "./named-option";

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Character, DashboardData, NamedOption, SpeciesOption } from "./core/types";
+import type {
+  BackgroundOption,
+  Character,
+  DashboardData,
+  NamedOption,
+  SpeciesOption,
+} from "./core/types";
 import CharacterCreation from "./components/CharacterCreation";
 import type { CharacterCreationInput } from "./components/CharacterCreation";
 import CharacterDetail from "./components/CharacterDetail";
@@ -14,7 +20,7 @@ function fetchDashboardData(): Promise<DashboardData> {
   return Promise.all([
     request<Character[]>("/characters"),
     request<SpeciesOption[]>("/species"),
-    request<NamedOption[]>("/backgrounds"),
+    request<BackgroundOption[]>("/backgrounds"),
     request<NamedOption[]>("/classes"),
   ]).then(([characters, species, backgrounds, classes]) => ({
     characters,
