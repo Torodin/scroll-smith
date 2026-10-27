@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import type {
   BackgroundOption,
   Character,
+  ClassDetail,
+  ClassSummary,
   DashboardData,
-  NamedOption,
   SpeciesOption,
 } from "./core/types";
 import CharacterCreation from "./components/CharacterCreation";
@@ -21,7 +22,7 @@ function fetchDashboardData(): Promise<DashboardData> {
     request<Character[]>("/characters"),
     request<SpeciesOption[]>("/species"),
     request<BackgroundOption[]>("/backgrounds"),
-    request<NamedOption[]>("/classes"),
+    request<ClassSummary[]>("/classes"),
   ]).then(([characters, species, backgrounds, classes]) => ({
     characters,
     species,
@@ -155,6 +156,7 @@ function App() {
               data={data}
               onCancel={() => setPage({ name: "dashboard" })}
               onCreate={createCharacter}
+              loadClass={(id) => request<ClassDetail>(`/classes/${id}`)}
             />
           ) : (
             <CharacterDetail

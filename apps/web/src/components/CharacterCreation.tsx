@@ -1,6 +1,12 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import type { Character, DashboardData } from "../core/types";
+import type { Character, ClassChoicesInput, ClassDetail, DashboardData } from "../core/types";
+import ClassStep, {
+  buildClassChoices,
+  emptyClassSelection,
+  validateClassSelection,
+} from "./ClassStep";
+import type { ClassSelection } from "./ClassStep";
 import { optionName } from "./option-name";
 
 export type CharacterCreationInput = {
@@ -9,6 +15,7 @@ export type CharacterCreationInput = {
   backgroundId: number;
   classId: number;
   speciesChoices: { choiceGroupId: number; choiceOptionId: number }[];
+  classChoices: ClassChoicesInput;
   backgroundChoices?: {
     abilityIncreases: { mode: "split"; plusTwo: string; plusOne: string } | { mode: "even" };
     equipment: "package" | "gold";
@@ -22,17 +29,20 @@ function CharacterCreation({
   data,
   onCancel,
   onCreate,
+  loadClass,
 }: {
   data: DashboardData;
   onCancel: () => void;
   onCreate: (input: CharacterCreationInput) => Promise<Character>;
+  loadClass: (id: number) => Promise<ClassDetail>;
 }) {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [speciesId, setSpeciesId] = useState("");
   const [speciesSelections, setSpeciesSelections] = useState<Record<number, number[]>>({});
   const [backgroundId, setBackgroundId] = useState("");
-  const [classId, setClassId] = useState("");
+  const [classSelection, setClassSelection] = useState<ClassSelection>(emptyClassSelection);
+  const [classDetail, setClassDetail] = useState<ClassDetail | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [abilityMode, setAbilityMode] = useState<"split" | "even">("split");
@@ -45,9 +55,17 @@ function CharacterCreation({
     (background) => String(background.id) === backgroundId,
   );
   const props = selectedBackground?.properties ?? null;
+  const backgroundSkills = props?.skillProficiencies ?? [];
 
   const submitStep = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (step === 4) {
+      const classError = validateClassSelection(classDetail, classSelection, backgroundSkills);
+      if (classError || !classDetail) {
+        setError(classError ?? "Choose a class to continue.");
+        return;
+      }
+    }
     if (step === 3) {
       if (!selectedBackground) {
         setError("Choose a background to continue.");
@@ -96,7 +114,8 @@ function CharacterCreation({
         name: name.trim(),
         speciesId: Number(speciesId),
         backgroundId: Number(backgroundId),
-        classId: Number(classId),
+        classId: Number(classSelection.classId),
+        classChoices: buildClassChoices(classDetail!, classSelection),
         ...(props
           ? {
               backgroundChoices: {
@@ -488,23 +507,17 @@ function CharacterCreation({
             <p className="step-kicker">Step 4 of 4</p>
             <h2>What is their calling?</h2>
             <p className="form-intro">Choose the class that guides their adventures.</p>
-            <label className="field">
-              <span>Class</span>
-              <select
-                autoFocus
-                name="class"
-                onChange={(event) => setClassId(event.target.value)}
-                required
-                value={classId}
-              >
-                <option value="">Choose a class</option>
-                {data.classes.map((characterClass) => (
-                  <option value={characterClass.id} key={characterClass.id}>
-                    {characterClass.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ClassStep
+              backgroundSkills={backgroundSkills}
+              classes={data.classes}
+              loadClass={loadClass}
+              onChange={(next) => {
+                setClassSelection(next);
+                setError(null);
+              }}
+              onDetail={setClassDetail}
+              selection={classSelection}
+            />
             <div className="creation-summary">
               <span className="summary-avatar" aria-hidden="true">
                 {name.trim().charAt(0).toUpperCase()}

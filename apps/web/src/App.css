@@ -990,3 +990,71 @@ h2 {
     transition-duration: 0.01ms !important;
   }
 }
+
+.class-pick-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.class-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--border, #d8d2c4);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.class-pick-selected {
+  border-color: currentColor;
+  font-weight: 600;
+}
+
+.class-name-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 0.5rem;
+}
+
+.class-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.class-facts dt {
+  font-weight: 600;
+}
+
+.class-facts dd {
+  margin: 0;
+}
+
+.class-table-wrap {
+  max-height: 22rem;
+  overflow: auto;
+}
+
+.class-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.class-table th,
+.class-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+  text-align: left;
+}
+
+.class-choices {
+  display: grid;
+  gap: 1rem;
+}
