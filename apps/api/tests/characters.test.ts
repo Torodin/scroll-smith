@@ -14,7 +14,12 @@ const acolyteChoices = {
   abilityIncreases: { mode: "split", plusTwo: "Wisdom", plusOne: "Intelligence" },
   equipment: "package",
 };
-const base = { ...ids, backgroundChoices: acolyteChoices };
+const barbarianChoices = {
+  skills: ["Nature", "Perception"],
+  weaponMasteries: ["Greataxe", "Handaxe"],
+  equipment: "A",
+};
+const base = { ...ids, backgroundChoices: acolyteChoices, classChoices: barbarianChoices };
 
 test("character CRUD", async () => {
   const app = createApp(createDb(":memory:"));
@@ -26,7 +31,21 @@ test("character CRUD", async () => {
   expect(await (await app.request("/characters")).json()).toHaveLength(1);
   expect((await app.request("/characters/1")).status).toBe(200);
 
-  const patched = await app.request("/characters/1", json("PATCH", { level: 3, classId: 2 }));
+  const patched = await app.request(
+    "/characters/1",
+    json("PATCH", {
+      level: 3,
+      classId: 2,
+      classChoices: {
+        skills: ["Arcana", "Deception", "History"],
+        tools: ["Lute", "Drum", "Flute"],
+        expertise: [],
+        cantrips: ["Vicious Mockery", "Minor Illusion"],
+        preparedSpells: ["Healing Word", "Dissonant Whispers", "Faerie Fire", "Sleep"],
+        equipment: "gold",
+      },
+    }),
+  );
   expect(await patched.json()).toMatchObject({ name: "Aria", level: 3, dex: 10, classId: 2 });
 
   expect((await app.request("/characters/1", { method: "DELETE" })).status).toBe(204);
@@ -158,7 +177,16 @@ test("characters require the configured number of options for multi-choice speci
 test("background choices are validated, applied and persisted", async () => {
   const app = createApp(createDb(":memory:"));
   const post = (body: Record<string, unknown>) =>
-    app.request("/characters", json("POST", { name: "Aria", speciesId: 7, classId: 1, ...body }));
+    app.request(
+      "/characters",
+      json("POST", {
+        name: "Aria",
+        speciesId: 7,
+        classId: 1,
+        classChoices: barbarianChoices,
+        ...body,
+      }),
+    );
 
   expect((await post({ backgroundId: 1 })).status).toBe(400);
   expect(
@@ -196,7 +224,7 @@ test("background choices are validated, applied and persisted", async () => {
     int: 11,
     wis: 12,
     cha: 10,
-    gold: 8,
+    gold: 23,
     backgroundChoices: {
       abilityMode: "split",
       plusTwo: "Wisdom",
@@ -205,7 +233,7 @@ test("background choices are validated, applied and persisted", async () => {
       goldGranted: 8,
     },
     feats: ["Magic Initiate (Cleric)"],
-    skillProficiencies: ["Insight", "Religion"],
+    skillProficiencies: ["Insight", "Nature", "Perception", "Religion"],
     toolProficiencies: ["Calligrapher's Supplies"],
     inventory: expect.arrayContaining([
       expect.objectContaining({ name: "Parchment", quantity: 10, source: "background" }),
@@ -227,10 +255,10 @@ test("background choices are validated, applied and persisted", async () => {
     dex: 11,
     con: 11,
     int: 10,
-    gold: 50,
+    gold: 65,
     toolProficiencies: ["Dice Set"],
     feats: ["Savage Attacker"],
-    inventory: [],
+    inventory: expect.not.arrayContaining([expect.objectContaining({ source: "background" })]),
   });
   const missingTool = {
     backgroundId: 4,
@@ -250,7 +278,7 @@ test("background choices are validated, applied and persisted", async () => {
     backgroundChoices: { ...missingTool.backgroundChoices, toolChoice: "Playing Card Set" },
   });
   expect(await soldierPackage.json()).toMatchObject({
-    gold: 14,
+    gold: 29,
     inventory: expect.arrayContaining([
       expect.objectContaining({ name: "Playing Card Set", quantity: 1 }),
       expect.objectContaining({ name: "Arrow", quantity: 20 }),
@@ -268,6 +296,7 @@ test("changing a background requires new choices and replaces the old benefits",
       classId: 1,
       backgroundId: 1,
       backgroundChoices: acolyteChoices,
+      classChoices: barbarianChoices,
     }),
   );
   const patch = (body: unknown) => app.request("/characters/1", json("PATCH", body));
@@ -284,13 +313,137 @@ test("changing a background requires new choices and replaces the old benefits",
     int: 12,
     dex: 11,
     con: 11,
-    gold: 50,
+    gold: 65,
     feats: ["Alert"],
-    skillProficiencies: ["Sleight of Hand", "Stealth"],
+    skillProficiencies: ["Nature", "Perception", "Sleight of Hand", "Stealth"],
     toolProficiencies: ["Thieves' Tools"],
-    inventory: [],
+    inventory: expect.not.arrayContaining([expect.objectContaining({ source: "background" })]),
     backgroundChoices: { abilityMode: "even", equipmentOption: "gold", goldGranted: 50 },
   });
+
+  expect((await app.request("/characters/1", { method: "DELETE" })).status).toBe(204);
+});
+
+test("class choices are validated, recorded and replaced when the class changes", async () => {
+  const app = createApp(createDb(":memory:"));
+  const post = (classChoices?: unknown, classId = 1) =>
+    app.request(
+      "/characters",
+      json("POST", {
+        name: "Aria",
+        speciesId: 7,
+        backgroundId: 1,
+        backgroundChoices: acolyteChoices,
+        classId,
+        classChoices,
+      }),
+    );
+
+  expect((await post()).status).toBe(400);
+  expect((await post({ ...barbarianChoices, skills: ["Nature"] })).status).toBe(400);
+  expect((await post({ ...barbarianChoices, skills: ["Nature", "Arcana"] })).status).toBe(400);
+  expect((await post({ ...barbarianChoices, skills: ["Nature", "Nature"] })).status).toBe(400);
+  expect((await post({ ...barbarianChoices, weaponMasteries: ["Greataxe"] })).status).toBe(400);
+  expect((await post({ ...barbarianChoices, equipment: "C" })).status).toBe(400);
+  expect((await post({ ...barbarianChoices, cantrips: ["Light"] })).status).toBe(400);
+  expect(await (await app.request("/characters")).json()).toHaveLength(0);
+
+  const barbarian = await post(barbarianChoices);
+  expect(await barbarian.json()).toMatchObject({
+    gold: 23,
+    classChoices: {
+      equipmentOption: "A",
+      goldGranted: 15,
+      skills: ["Nature", "Perception"],
+      weaponMasteries: ["Greataxe", "Handaxe"],
+      featureChoices: [],
+    },
+    inventory: expect.arrayContaining([
+      expect.objectContaining({ name: "Greataxe", quantity: 1, source: "class" }),
+      expect.objectContaining({ name: "Handaxe", quantity: 4, source: "class" }),
+    ]),
+  });
+
+  // Fighter (id 5) requires a Fighting Style and three masteries
+  const fighterChoices = {
+    skills: ["Athletics", "Perception"],
+    weaponMasteries: ["Greatsword", "Flail", "Javelin"],
+    equipment: "B",
+  };
+  expect((await post(fighterChoices, 5)).status).toBe(400);
+  const style = { choiceGroupId: 1, choiceOptionId: 1 };
+  expect((await post({ ...fighterChoices, featureChoices: [style] }, 5)).status).toBe(400);
+  const detail = (await (await app.request("/classes/5")).json()) as {
+    choiceGroups: { id: number; options: { id: number }[] }[];
+  };
+  const group = detail.choiceGroups[0]!;
+  const fighter = await post(
+    {
+      ...fighterChoices,
+      featureChoices: [{ choiceGroupId: group.id, choiceOptionId: group.options[1].id }],
+    },
+    5,
+  );
+  expect(fighter.status).toBe(201);
+  expect(await fighter.json()).toMatchObject({
+    gold: 19,
+    classChoices: { equipmentOption: "B", featureChoices: [{ choiceGroupId: group.id }] },
+    inventory: expect.arrayContaining([
+      expect.objectContaining({ name: "Longbow", source: "class" }),
+    ]),
+  });
+
+  // Rogue (id 9): expertise from known proficiencies, and background skills can't repeat
+  const rogueChoices = {
+    skills: ["Stealth", "Perception", "Deception", "Acrobatics"],
+    expertise: ["Stealth", "Thieves' Tools"],
+    weaponMasteries: ["Dagger", "Shortsword"],
+    equipment: "gold",
+  };
+  expect((await post({ ...rogueChoices, expertise: ["Arcana", "Stealth"] }, 9)).status).toBe(400);
+  expect(
+    (
+      await post(
+        { ...rogueChoices, skills: ["Insight", "Perception", "Deception", "Acrobatics"] },
+        9,
+      )
+    ).status,
+  ).toBe(400);
+  const rogue = await post(rogueChoices, 9);
+  expect(rogue.status).toBe(201);
+
+  // Switch the Barbarian (id 1) to a Wizard (id 12)
+  const wizardChoices = {
+    skills: ["Arcana", "History"],
+    cantrips: ["Light", "Mage Hand", "Fire Bolt"],
+    preparedSpells: ["Shield", "Magic Missile", "Sleep", "Detect Magic"],
+    equipment: "A",
+  };
+  const patch = (body: unknown) => app.request("/characters/1", json("PATCH", body));
+  expect((await patch({ classId: 12 })).status).toBe(400);
+  const changed = await patch({ classId: 12, classChoices: wizardChoices });
+  expect(changed.status).toBe(200);
+  const body = (await changed.json()) as {
+    inventory: { name: string }[];
+    skillProficiencies: string[];
+  };
+  expect(body).toMatchObject({
+    classId: 12,
+    gold: 13,
+    classChoices: { equipmentOption: "A", cantrips: wizardChoices.cantrips },
+  });
+  expect(body.inventory.some((i) => i.name === "Greataxe")).toBe(false);
+  expect(body.skillProficiencies).not.toContain("Nature");
+
+  // Changing the background to one overlapping the class skills requires new choices
+  expect(
+    (
+      await patch({
+        backgroundId: 3,
+        backgroundChoices: { abilityIncreases: { mode: "even" }, equipment: "gold" },
+      })
+    ).status,
+  ).toBe(400);
 
   expect((await app.request("/characters/1", { method: "DELETE" })).status).toBe(204);
 });

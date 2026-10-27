@@ -5,6 +5,8 @@ import type { Db } from "../../db/client.ts";
 import {
   backgroundDetails,
   characterBackgroundChoices,
+  characterClassChoices,
+  characterClassSelections,
   characterFeats,
   characterItems,
   characterSkillProficiencies,
@@ -12,6 +14,10 @@ import {
   characterToolProficiencies,
   characters,
   characterSpells,
+  classChoiceGroups,
+  classChoiceOptions,
+  classes,
+  classLevels,
   items,
   speciesChoiceGroups,
   speciesChoiceOptions,
@@ -19,7 +25,12 @@ import {
 } from "../../db/schema.ts";
 import type { BackgroundAbilityScore } from "../../db/schema.ts";
 import { GAMING_SET_PLACEHOLDER, toolCategories } from "../../shared/tool-categories.ts";
-import type { BackgroundChoices, CreateCharacter, UpdateCharacter } from "./characters.schema.ts";
+import type {
+  BackgroundChoices,
+  ClassChoices,
+  CreateCharacter,
+  UpdateCharacter,
+} from "./characters.schema.ts";
 
 type Transaction = BetterSQLiteTransaction<typeof relations>;
 type Reader = Pick<Db, "select">;
@@ -30,6 +41,12 @@ type ResolvedBackground = {
   details: typeof backgroundDetails.$inferSelect;
   choices: BackgroundChoices;
   tool: string;
+};
+type ResolvedClass = {
+  cls: typeof classes.$inferSelect;
+  choices: ClassChoices;
+  featureChoices: SpeciesChoice[];
+  goldGranted: number;
 };
 
 const abilityKeys: Record<BackgroundAbilityScore, AbilityKey> = {
@@ -42,6 +59,8 @@ const abilityKeys: Record<BackgroundAbilityScore, AbilityKey> = {
 };
 const MAX_ABILITY_SCORE = 20;
 const BACKGROUND_SOURCE = "background";
+const CLASS_SOURCE = "class";
+const GOLD_OPTION = "gold";
 
 function isForeignKeyError(err: unknown): boolean {
   const e = err as { code?: string; cause?: { code?: string } };
@@ -76,12 +95,18 @@ export class CharactersService {
   create(input: CreateCharacter) {
     try {
       return this.db.transaction((tx) => {
-        const { speciesChoices = [], backgroundChoices, ...characterInput } = input;
+        const { speciesChoices = [], backgroundChoices, classChoices, ...characterInput } = input;
         this.validateSpeciesChoices(tx, characterInput.speciesId, speciesChoices);
         const background = this.resolveBackground(
           tx,
           characterInput.backgroundId,
           backgroundChoices,
+        );
+        const characterClass = this.resolveClass(
+          tx,
+          characterInput.classId,
+          classChoices,
+          background?.details.skillProficiencies ?? [],
         );
         const scores = background
           ? this.applyAbilityIncreases(characterInput, background)
@@ -94,6 +119,7 @@ export class CharactersService {
         if (!character) throw new Error("Character insert returned no row");
         this.saveSpeciesChoices(tx, character.id, speciesChoices);
         if (background) this.saveBackground(tx, character.id, background);
+        this.saveClass(tx, character.id, characterClass);
         return this.getWithChoices(tx, character.id);
       });
     } catch (err) {
@@ -107,7 +133,7 @@ export class CharactersService {
         const current = tx.select().from(characters).where(eq(characters.id, id)).get();
         if (!current) throw new HTTPException(404, { message: "Character not found" });
 
-        const { speciesChoices, backgroundChoices, ...characterInput } = input;
+        const { speciesChoices, backgroundChoices, classChoices, ...characterInput } = input;
         const speciesId = characterInput.speciesId ?? current.speciesId;
         const replaceChoices = speciesId !== current.speciesId || speciesChoices !== undefined;
         const choices = speciesChoices ?? [];
@@ -124,6 +150,28 @@ export class CharactersService {
         const background = backgroundChanged
           ? this.resolveBackground(tx, characterInput.backgroundId!, backgroundChoices)
           : null;
+        const classChanged =
+          characterInput.classId !== undefined && characterInput.classId !== current.classId;
+        if (classChanged && !classChoices) {
+          throw new HTTPException(400, {
+            message: "Class choices are required when changing the class",
+          });
+        }
+        const replaceClass = classChanged || classChoices !== undefined;
+        const backgroundSkills = backgroundChanged
+          ? (background?.details.skillProficiencies ?? [])
+          : this.readSkills(tx, id);
+        const characterClass = replaceClass
+          ? this.resolveClass(
+              tx,
+              characterInput.classId ?? current.classId,
+              classChoices,
+              backgroundSkills,
+            )
+          : null;
+        if (backgroundChanged && !replaceClass) {
+          this.assertClassSkillsAvailable(tx, id, backgroundSkills);
+        }
         const scores = background
           ? this.applyAbilityIncreases({ ...current, ...characterInput }, background)
           : undefined;
@@ -140,6 +188,10 @@ export class CharactersService {
           this.clearBackground(tx, id);
           if (background) this.saveBackground(tx, id, background);
         }
+        if (characterClass) {
+          this.clearClass(tx, id);
+          this.saveClass(tx, id, characterClass);
+        }
         return this.getWithChoices(tx, id);
       });
     } catch (err) {
@@ -152,6 +204,8 @@ export class CharactersService {
       tx.delete(characterItems).where(eq(characterItems.characterId, id)).run();
       tx.delete(characterSpells).where(eq(characterSpells.characterId, id)).run();
       tx.delete(characterSpeciesChoices).where(eq(characterSpeciesChoices.characterId, id)).run();
+      tx.delete(characterClassChoices).where(eq(characterClassChoices.characterId, id)).run();
+      tx.delete(characterClassSelections).where(eq(characterClassSelections.characterId, id)).run();
       tx.delete(characterBackgroundChoices)
         .where(eq(characterBackgroundChoices.characterId, id))
         .run();
@@ -335,6 +389,245 @@ export class CharactersService {
       .run();
   }
 
+  private resolveClass(
+    tx: Transaction,
+    classId: number,
+    choices: ClassChoices | undefined,
+    backgroundSkills: string[],
+  ): ResolvedClass {
+    const cls = tx.select().from(classes).where(eq(classes.id, classId)).get();
+    if (!cls) throw new HTTPException(400, { message: "Unknown species, background or class" });
+    if (!choices) throw this.invalidClassChoices("Class choices are required");
+
+    const unique = (values: string[]) => new Set(values).size === values.length;
+    const skills = choices.skills;
+    if (
+      skills.length !== cls.skillChoiceCount ||
+      !unique(skills) ||
+      skills.some((skill) => !cls.skillChoiceOptions.includes(skill))
+    ) {
+      throw this.invalidClassChoices(
+        `Choose ${cls.skillChoiceCount} different class skills from the offered list`,
+      );
+    }
+    if (skills.some((skill) => backgroundSkills.includes(skill))) {
+      throw this.invalidClassChoices("Class skills cannot repeat skills granted by the background");
+    }
+
+    const tools = choices.tools ?? [];
+    const allowedTools = cls.toolChoice ? (toolCategories[cls.toolChoice.category] ?? []) : [];
+    if (
+      tools.length !== (cls.toolChoice?.count ?? 0) ||
+      !unique(tools) ||
+      tools.some((tool) => !allowedTools.includes(tool))
+    ) {
+      throw this.invalidClassChoices(
+        cls.toolChoice
+          ? `Choose ${cls.toolChoice.count} different ${cls.toolChoice.category} proficiencies`
+          : "This class does not offer a tool choice",
+      );
+    }
+
+    const expertise = choices.expertise ?? [];
+    const expertiseOptions = [...backgroundSkills, ...skills, ...cls.toolProficiencies];
+    if (
+      expertise.length !== cls.expertiseCount ||
+      !unique(expertise) ||
+      expertise.some((entry) => !expertiseOptions.includes(entry))
+    ) {
+      throw this.invalidClassChoices(
+        `Choose ${cls.expertiseCount} different proficiencies for Expertise`,
+      );
+    }
+
+    const masteries = choices.weaponMasteries ?? [];
+    if (masteries.length !== cls.weaponMasteryCount || !unique(masteries)) {
+      throw this.invalidClassChoices(
+        `Choose ${cls.weaponMasteryCount} different weapons for Weapon Mastery`,
+      );
+    }
+
+    const featureChoices = choices.featureChoices ?? [];
+    const extraCantrips = this.validateClassFeatureChoices(tx, classId, featureChoices);
+
+    const levelOne = tx
+      .select()
+      .from(classLevels)
+      .where(and(eq(classLevels.classId, classId), eq(classLevels.level, 1)))
+      .get();
+    const cantripCount = Number(levelOne?.columns.Cantrips ?? 0) + extraCantrips;
+    const preparedCount = Number(levelOne?.columns["Prepared Spells"] ?? 0);
+    const cantrips = choices.cantrips ?? [];
+    const prepared = choices.preparedSpells ?? [];
+    if (cantrips.length !== cantripCount || !unique(cantrips)) {
+      throw this.invalidClassChoices(`Choose ${cantripCount} different cantrips`);
+    }
+    if (prepared.length !== preparedCount || !unique(prepared)) {
+      throw this.invalidClassChoices(`Choose ${preparedCount} different prepared spells`);
+    }
+
+    let goldGranted: number;
+    if (choices.equipment === GOLD_OPTION) {
+      goldGranted = cls.startingEquipment.goldAlternative;
+    } else {
+      const equipmentPackage = cls.startingEquipment.packages[choices.equipment];
+      if (!equipmentPackage) {
+        throw this.invalidClassChoices("Choose a valid starting equipment option");
+      }
+      goldGranted = equipmentPackage.gold;
+    }
+
+    return { cls, choices, featureChoices, goldGranted };
+  }
+
+  // Returns the extra cantrips granted by the chosen options
+  private validateClassFeatureChoices(
+    tx: Transaction,
+    classId: number,
+    choices: SpeciesChoice[],
+  ): number {
+    const groups = tx
+      .select()
+      .from(classChoiceGroups)
+      .where(and(eq(classChoiceGroups.classId, classId), eq(classChoiceGroups.level, 1)))
+      .all();
+    let extraCantrips = 0;
+    for (const group of groups) {
+      const selected = choices
+        .filter((choice) => choice.choiceGroupId === group.id)
+        .map((choice) => choice.choiceOptionId);
+      const options =
+        selected.length === 0
+          ? []
+          : tx
+              .select()
+              .from(classChoiceOptions)
+              .where(
+                and(
+                  eq(classChoiceOptions.choiceGroupId, group.id),
+                  inArray(classChoiceOptions.id, selected),
+                ),
+              )
+              .all();
+      if (
+        selected.length !== group.choiceCount ||
+        new Set(selected).size !== selected.length ||
+        options.length !== selected.length
+      ) {
+        throw this.invalidClassChoices(`Choose a valid option for ${group.name}`);
+      }
+      extraCantrips += options.reduce((total, option) => total + option.extraCantrips, 0);
+    }
+    if (choices.length !== groups.reduce((total, group) => total + group.choiceCount, 0)) {
+      throw this.invalidClassChoices("Feature choices must match the class choice groups");
+    }
+    return extraCantrips;
+  }
+
+  private saveClass(tx: Transaction, characterId: number, resolved: ResolvedClass) {
+    const { cls, choices, featureChoices, goldGranted } = resolved;
+    tx.insert(characterClassSelections)
+      .values({
+        characterId,
+        equipmentOption: choices.equipment,
+        goldGranted,
+        skills: choices.skills,
+        tools: choices.tools ?? [],
+        expertise: choices.expertise ?? [],
+        weaponMasteries: choices.weaponMasteries ?? [],
+        cantrips: choices.cantrips ?? [],
+        preparedSpells: choices.preparedSpells ?? [],
+      })
+      .run();
+    if (featureChoices.length > 0) {
+      tx.insert(characterClassChoices)
+        .values(featureChoices.map((choice) => ({ characterId, ...choice })))
+        .run();
+    }
+    tx.update(characters)
+      .set({ gold: sql`${characters.gold} + ${goldGranted}` })
+      .where(eq(characters.id, characterId))
+      .run();
+
+    if (choices.equipment === GOLD_OPTION) return;
+    const entries = cls.startingEquipment.packages[choices.equipment]!.items;
+    const rows = tx
+      .select({ id: items.id, name: items.name })
+      .from(items)
+      .where(
+        inArray(
+          items.name,
+          entries.map((entry) => entry.item),
+        ),
+      )
+      .all();
+    tx.insert(characterItems)
+      .values(
+        entries.map((entry) => {
+          const item = rows.find((row) => row.name === entry.item);
+          if (!item) throw new Error(`Missing item for class equipment: ${entry.item}`);
+          return {
+            characterId,
+            itemId: item.id,
+            quantity: entry.quantity,
+            source: CLASS_SOURCE,
+          };
+        }),
+      )
+      .run();
+  }
+
+  private clearClass(tx: Transaction, characterId: number) {
+    const previous = tx
+      .select()
+      .from(characterClassSelections)
+      .where(eq(characterClassSelections.characterId, characterId))
+      .get();
+    if (previous) {
+      tx.update(characters)
+        .set({ gold: sql`max(${characters.gold} - ${previous.goldGranted}, 0)` })
+        .where(eq(characters.id, characterId))
+        .run();
+    }
+    tx.delete(characterItems)
+      .where(
+        and(eq(characterItems.characterId, characterId), eq(characterItems.source, CLASS_SOURCE)),
+      )
+      .run();
+    tx.delete(characterClassChoices)
+      .where(eq(characterClassChoices.characterId, characterId))
+      .run();
+    tx.delete(characterClassSelections)
+      .where(eq(characterClassSelections.characterId, characterId))
+      .run();
+  }
+
+  private readSkills(reader: Reader, characterId: number): string[] {
+    return reader
+      .select({ skill: characterSkillProficiencies.skill })
+      .from(characterSkillProficiencies)
+      .where(eq(characterSkillProficiencies.characterId, characterId))
+      .all()
+      .map((row) => row.skill);
+  }
+
+  private assertClassSkillsAvailable(tx: Transaction, characterId: number, taken: string[]) {
+    const selection = tx
+      .select({ skills: characterClassSelections.skills })
+      .from(characterClassSelections)
+      .where(eq(characterClassSelections.characterId, characterId))
+      .get();
+    if (selection?.skills.some((skill) => taken.includes(skill))) {
+      throw this.invalidClassChoices(
+        "The new background repeats a class skill; send classChoices to choose again",
+      );
+    }
+  }
+
+  private invalidClassChoices(message: string) {
+    return new HTTPException(400, { message });
+  }
+
   private invalidBackgroundChoices(message: string) {
     return new HTTPException(400, { message });
   }
@@ -454,12 +747,42 @@ export class CharactersService {
       .where(eq(characterItems.characterId, characterId))
       .orderBy(items.name)
       .all();
+    const classSelection =
+      reader
+        .select()
+        .from(characterClassSelections)
+        .where(eq(characterClassSelections.characterId, characterId))
+        .get() ?? null;
+    const classFeatureChoices = reader
+      .select({
+        choiceGroupId: characterClassChoices.choiceGroupId,
+        choiceOptionId: characterClassChoices.choiceOptionId,
+      })
+      .from(characterClassChoices)
+      .where(eq(characterClassChoices.characterId, characterId))
+      .orderBy(characterClassChoices.choiceGroupId, characterClassChoices.choiceOptionId)
+      .all();
+    const classChoices = classSelection
+      ? {
+          equipmentOption: classSelection.equipmentOption,
+          goldGranted: classSelection.goldGranted,
+          skills: classSelection.skills,
+          tools: classSelection.tools,
+          expertise: classSelection.expertise,
+          weaponMasteries: classSelection.weaponMasteries,
+          cantrips: classSelection.cantrips,
+          preparedSpells: classSelection.preparedSpells,
+          featureChoices: classFeatureChoices,
+        }
+      : null;
+    const sorted = (values: string[]) => [...new Set(values)].sort();
     return {
       speciesChoices,
       backgroundChoices,
+      classChoices,
       feats,
-      skillProficiencies,
-      toolProficiencies,
+      skillProficiencies: sorted([...skillProficiencies, ...(classSelection?.skills ?? [])]),
+      toolProficiencies: sorted([...toolProficiencies, ...(classSelection?.tools ?? [])]),
       inventory,
     };
   }

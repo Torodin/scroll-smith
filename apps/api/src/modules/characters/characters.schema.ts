@@ -25,6 +25,18 @@ const backgroundChoices = z.object({
   toolChoice: z.string().trim().min(1).optional(),
 });
 
+const names = z.array(z.string().trim().min(1));
+const classChoices = z.object({
+  skills: names,
+  equipment: z.string().trim().min(1),
+  tools: names.optional(),
+  expertise: names.optional(),
+  weaponMasteries: names.optional(),
+  cantrips: names.optional(),
+  preparedSpells: names.optional(),
+  featureChoices: speciesChoices.optional(),
+});
+
 export const createCharacterSchema = z.object({
   name: z.string().trim().min(1).max(100),
   level: z.number().int().min(1).max(20).default(1),
@@ -39,6 +51,7 @@ export const createCharacterSchema = z.object({
   cha: ability.default(10),
   speciesChoices: speciesChoices.optional(),
   backgroundChoices: backgroundChoices.optional(),
+  classChoices: classChoices.optional(),
 });
 
 // Built explicitly: partial() on a schema with defaults would overwrite fields on PATCH
@@ -57,9 +70,11 @@ export const updateCharacterSchema = z
     cha: ability.optional(),
     speciesChoices: speciesChoices.optional(),
     backgroundChoices: backgroundChoices.optional(),
+    classChoices: classChoices.optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "Body must not be empty" });
 
 export type CreateCharacter = z.infer<typeof createCharacterSchema>;
 export type UpdateCharacter = z.infer<typeof updateCharacterSchema>;
 export type BackgroundChoices = z.infer<typeof backgroundChoices>;
+export type ClassChoices = z.infer<typeof classChoices>;

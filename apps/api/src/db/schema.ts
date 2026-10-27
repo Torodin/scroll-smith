@@ -61,12 +61,119 @@ export const backgroundDetails = sqliteTable("background_details", {
   equipment: text("equipment", { mode: "json" }).$type<BackgroundEquipment>().notNull(),
 });
 
+export type ClassEquipmentPackage = {
+  items: { item: string; quantity: number }[];
+  gold: number;
+};
+
+export type ClassStartingEquipment = {
+  packages: Record<string, ClassEquipmentPackage>;
+  goldAlternative: number;
+};
+
+export type ClassToolChoice = { count: number; category: string };
+export type ClassLevelColumns = Record<string, string | number>;
+export type ClassEquipmentOption = string;
+
 export const classes = sqliteTable("classes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   description: text("description").notNull(),
   hitPointDie: integer("hit_point_die").notNull(),
+  primaryAbility: text("primary_ability").notNull().default(""),
+  savingThrows: text("saving_throws", { mode: "json" })
+    .$type<BackgroundAbilityScore[]>()
+    .notNull()
+    .default([]),
+  armorTraining: text("armor_training", { mode: "json" }).$type<string[]>().notNull().default([]),
+  weaponProficiencies: text("weapon_proficiencies", { mode: "json" })
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+  toolProficiencies: text("tool_proficiencies", { mode: "json" })
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+  toolChoice: text("tool_choice", { mode: "json" }).$type<ClassToolChoice | null>(),
+  skillChoiceCount: integer("skill_choice_count").notNull().default(0),
+  skillChoiceOptions: text("skill_choice_options", { mode: "json" })
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+  expertiseCount: integer("expertise_count").notNull().default(0),
+  weaponMasteryCount: integer("weapon_mastery_count").notNull().default(0),
+  spellcastingAbility: text("spellcasting_ability").$type<BackgroundAbilityScore | null>(),
+  startingEquipment: text("starting_equipment", { mode: "json" })
+    .$type<ClassStartingEquipment>()
+    .notNull()
+    .default({ packages: {}, goldAlternative: 0 }),
 });
+
+export const subclasses = sqliteTable("subclasses", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  classId: integer("class_id")
+    .notNull()
+    .references(() => classes.id),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+});
+
+export const classLevels = sqliteTable(
+  "class_levels",
+  {
+    classId: integer("class_id")
+      .notNull()
+      .references(() => classes.id),
+    level: integer("level").notNull(),
+    proficiencyBonus: integer("proficiency_bonus").notNull(),
+    columns: text("columns", { mode: "json" }).$type<ClassLevelColumns>().notNull(),
+    spellSlots: text("spell_slots", { mode: "json" }).$type<number[] | null>(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.classId, table.level] }),
+    check("class_levels_level_range", sql`${table.level} between 1 and 20`),
+  ],
+);
+
+export const classFeatures = sqliteTable("class_features", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  classId: integer("class_id")
+    .notNull()
+    .references(() => classes.id),
+  subclassId: integer("subclass_id").references(() => subclasses.id),
+  level: integer("level").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+});
+
+export const classChoiceGroups = sqliteTable(
+  "class_choice_groups",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    classId: integer("class_id")
+      .notNull()
+      .references(() => classes.id),
+    level: integer("level").notNull().default(1),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    choiceCount: integer("choice_count").notNull().default(1),
+  },
+  (table) => [check("class_choice_groups_choice_count_positive", sql`${table.choiceCount} > 0`)],
+);
+
+export const classChoiceOptions = sqliteTable(
+  "class_choice_options",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    choiceGroupId: integer("choice_group_id")
+      .notNull()
+      .references(() => classChoiceGroups.id),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    extraCantrips: integer("extra_cantrips").notNull().default(0),
+  },
+  (table) => [uniqueIndex("class_choice_options_group_id_id").on(table.choiceGroupId, table.id)],
+);
 
 export const items = sqliteTable("items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -181,6 +288,40 @@ export const characterBackgroundChoices = sqliteTable("character_background_choi
   goldGranted: integer("gold_granted").notNull().default(0),
 });
 
+export const characterClassSelections = sqliteTable("character_class_selections", {
+  characterId: integer("character_id")
+    .primaryKey()
+    .references(() => characters.id),
+  equipmentOption: text("equipment_option").$type<ClassEquipmentOption>().notNull(),
+  goldGranted: integer("gold_granted").notNull().default(0),
+  skills: text("skills", { mode: "json" }).$type<string[]>().notNull(),
+  tools: text("tools", { mode: "json" }).$type<string[]>().notNull(),
+  expertise: text("expertise", { mode: "json" }).$type<string[]>().notNull(),
+  weaponMasteries: text("weapon_masteries", { mode: "json" }).$type<string[]>().notNull(),
+  cantrips: text("cantrips", { mode: "json" }).$type<string[]>().notNull(),
+  preparedSpells: text("prepared_spells", { mode: "json" }).$type<string[]>().notNull(),
+});
+
+export const characterClassChoices = sqliteTable(
+  "character_class_choices",
+  {
+    characterId: integer("character_id")
+      .notNull()
+      .references(() => characters.id),
+    choiceGroupId: integer("choice_group_id")
+      .notNull()
+      .references(() => classChoiceGroups.id),
+    choiceOptionId: integer("choice_option_id").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.characterId, table.choiceGroupId, table.choiceOptionId] }),
+    foreignKey({
+      columns: [table.choiceGroupId, table.choiceOptionId],
+      foreignColumns: [classChoiceOptions.choiceGroupId, classChoiceOptions.id],
+    }),
+  ],
+);
+
 export const characterFeats = sqliteTable(
   "character_feats",
   {
@@ -244,9 +385,9 @@ export const characterItems = sqliteTable(
       .notNull()
       .references(() => items.id),
     quantity: integer("quantity").notNull().default(1),
-    source: text("source"),
+    source: text("source").notNull().default("manual"),
   },
-  (table) => [primaryKey({ columns: [table.characterId, table.itemId] })],
+  (table) => [primaryKey({ columns: [table.characterId, table.itemId, table.source] })],
 );
 
 export const characterSpells = sqliteTable(
@@ -268,6 +409,13 @@ export const relations = defineRelations(
     backgrounds,
     backgroundDetails,
     characterBackgroundChoices,
+    characterClassChoices,
+    characterClassSelections,
+    classChoiceGroups,
+    classChoiceOptions,
+    classFeatures,
+    classLevels,
+    subclasses,
     characterFeats,
     characterSkillProficiencies,
     characterToolProficiencies,
@@ -296,6 +444,39 @@ export const relations = defineRelations(
       background: r.one.backgrounds({
         from: r.backgroundDetails.backgroundId,
         to: r.backgrounds.id,
+      }),
+    },
+    classes: {
+      levels: r.many.classLevels({ from: r.classes.id, to: r.classLevels.classId }),
+      features: r.many.classFeatures({ from: r.classes.id, to: r.classFeatures.classId }),
+      subclasses: r.many.subclasses({ from: r.classes.id, to: r.subclasses.classId }),
+      choiceGroups: r.many.classChoiceGroups({
+        from: r.classes.id,
+        to: r.classChoiceGroups.classId,
+      }),
+    },
+    classLevels: {
+      class: r.one.classes({ from: r.classLevels.classId, to: r.classes.id }),
+    },
+    classFeatures: {
+      class: r.one.classes({ from: r.classFeatures.classId, to: r.classes.id }),
+      subclass: r.one.subclasses({ from: r.classFeatures.subclassId, to: r.subclasses.id }),
+    },
+    subclasses: {
+      class: r.one.classes({ from: r.subclasses.classId, to: r.classes.id }),
+      features: r.many.classFeatures({ from: r.subclasses.id, to: r.classFeatures.subclassId }),
+    },
+    classChoiceGroups: {
+      class: r.one.classes({ from: r.classChoiceGroups.classId, to: r.classes.id }),
+      options: r.many.classChoiceOptions({
+        from: r.classChoiceGroups.id,
+        to: r.classChoiceOptions.choiceGroupId,
+      }),
+    },
+    classChoiceOptions: {
+      choiceGroup: r.one.classChoiceGroups({
+        from: r.classChoiceOptions.choiceGroupId,
+        to: r.classChoiceGroups.id,
       }),
     },
     characters: {
