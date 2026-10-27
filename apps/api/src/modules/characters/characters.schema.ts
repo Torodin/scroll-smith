@@ -2,6 +2,11 @@ import { z } from "zod";
 
 const ability = z.number().int().min(1).max(30);
 const refId = z.number().int().positive();
+const speciesChoice = z.object({
+  choiceGroupId: refId,
+  choiceOptionId: refId,
+});
+const speciesChoices = z.array(speciesChoice);
 
 export const createCharacterSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -15,6 +20,7 @@ export const createCharacterSchema = z.object({
   int: ability.default(10),
   wis: ability.default(10),
   cha: ability.default(10),
+  speciesChoices: speciesChoices.optional(),
 });
 
 // Built explicitly: partial() on a schema with defaults would overwrite fields on PATCH
@@ -31,6 +37,7 @@ export const updateCharacterSchema = z
     int: ability.optional(),
     wis: ability.optional(),
     cha: ability.optional(),
+    speciesChoices: speciesChoices.optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "Body must not be empty" });
 
