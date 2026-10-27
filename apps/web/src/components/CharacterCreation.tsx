@@ -9,6 +9,11 @@ export type CharacterCreationInput = {
   backgroundId: number;
   classId: number;
   speciesChoices: { choiceGroupId: number; choiceOptionId: number }[];
+  backgroundChoices?: {
+    abilityIncreases: { mode: "split"; plusTwo: string; plusOne: string } | { mode: "even" };
+    equipment: "package" | "gold";
+    toolChoice?: string;
+  };
 };
 
 const gamingSets = ["Dice Set", "Dragonchess Set", "Playing Card Set", "Three-Dragon Ante Set"];
@@ -34,6 +39,7 @@ function CharacterCreation({
   const [plusTwo, setPlusTwo] = useState("");
   const [plusOne, setPlusOne] = useState("");
   const [gamingSet, setGamingSet] = useState("");
+  const [equipment, setEquipment] = useState<"package" | "gold">("package");
   const selectedSpecies = data.species.find((species) => String(species.id) === speciesId);
   const selectedBackground = data.backgrounds.find(
     (background) => String(background.id) === backgroundId,
@@ -91,6 +97,18 @@ function CharacterCreation({
         speciesId: Number(speciesId),
         backgroundId: Number(backgroundId),
         classId: Number(classId),
+        ...(props
+          ? {
+              backgroundChoices: {
+                abilityIncreases:
+                  abilityMode === "split"
+                    ? { mode: "split" as const, plusTwo, plusOne }
+                    : { mode: "even" as const },
+                equipment,
+                ...(props.toolProficiency.type === "choice" ? { toolChoice: gamingSet } : {}),
+              },
+            }
+          : {}),
         speciesChoices:
           selectedSpecies?.choiceGroups.flatMap((group) =>
             (speciesSelections[group.id] ?? []).map((choiceOptionId) => ({
@@ -311,6 +329,7 @@ function CharacterCreation({
                         setPlusTwo("");
                         setPlusOne("");
                         setGamingSet("");
+                        setEquipment("package");
                         setError(null);
                       }}
                       required
@@ -424,23 +443,35 @@ function CharacterCreation({
                         ) : (
                           <p className="species-empty">{props.abilityScores.join(", ")}</p>
                         )}
-                        <p className="species-empty">
-                          Choices are not saved yet. No score can rise above 20.
-                        </p>
+                        <p className="species-empty">No score can rise above 20.</p>
                         <h4>Equipment</h4>
-                        <p className="species-empty">
-                          <strong>Option A:</strong>{" "}
-                          {[
-                            ...props.equipment.package.items.map((entry) =>
-                              entry.quantity > 1 ? `${entry.quantity} ${entry.item}` : entry.item,
-                            ),
-                            `${props.equipment.package.gold} GP`,
-                          ].join(", ")}
-                        </p>
-                        <p className="species-empty">
-                          <strong>Option B:</strong> {props.equipment.alternative.amount}{" "}
-                          {props.equipment.alternative.currency}
-                        </p>
+                        <div className="background-ability-mode" role="radiogroup">
+                          <label>
+                            <input
+                              checked={equipment === "package"}
+                              name="background-equipment"
+                              onChange={() => setEquipment("package")}
+                              type="radio"
+                            />{" "}
+                            <strong>Option A:</strong>{" "}
+                            {[
+                              ...props.equipment.package.items.map((entry) =>
+                                entry.quantity > 1 ? `${entry.quantity} ${entry.item}` : entry.item,
+                              ),
+                              `${props.equipment.package.gold} GP`,
+                            ].join(", ")}
+                          </label>
+                          <label>
+                            <input
+                              checked={equipment === "gold"}
+                              name="background-equipment"
+                              onChange={() => setEquipment("gold")}
+                              type="radio"
+                            />{" "}
+                            <strong>Option B:</strong> {props.equipment.alternative.amount}{" "}
+                            {props.equipment.alternative.currency}
+                          </label>
+                        </div>
                       </div>
                     </div>
                   ) : null}

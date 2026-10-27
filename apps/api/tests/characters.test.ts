@@ -9,14 +9,19 @@ const json = (method: string, body: unknown) => ({
   body: JSON.stringify(body),
 });
 
-const base = { speciesId: 7, backgroundId: 1, classId: 1 };
+const ids = { speciesId: 7, backgroundId: 1, classId: 1 };
+const acolyteChoices = {
+  abilityIncreases: { mode: "split", plusTwo: "Wisdom", plusOne: "Intelligence" },
+  equipment: "package",
+};
+const base = { ...ids, backgroundChoices: acolyteChoices };
 
 test("character CRUD", async () => {
   const app = createApp(createDb(":memory:"));
 
   const created = await app.request("/characters", json("POST", { name: "Aria", ...base }));
   expect(created.status).toBe(201);
-  expect(await created.json()).toMatchObject({ id: 1, name: "Aria", level: 1, str: 10, ...base });
+  expect(await created.json()).toMatchObject({ id: 1, name: "Aria", level: 1, str: 10, ...ids });
 
   expect(await (await app.request("/characters")).json()).toHaveLength(1);
   expect((await app.request("/characters/1")).status).toBe(200);
@@ -148,4 +153,144 @@ test("characters require the configured number of options for multi-choice speci
   expect(await created.json()).toMatchObject({ speciesChoices: choices.slice(0, 2) });
 
   expect((await create(choices)).status).toBe(400);
+});
+
+test("background choices are validated, applied and persisted", async () => {
+  const app = createApp(createDb(":memory:"));
+  const post = (body: Record<string, unknown>) =>
+    app.request("/characters", json("POST", { name: "Aria", speciesId: 7, classId: 1, ...body }));
+
+  expect((await post({ backgroundId: 1 })).status).toBe(400);
+  expect(
+    (
+      await post({
+        backgroundId: 1,
+        backgroundChoices: {
+          ...acolyteChoices,
+          abilityIncreases: { mode: "split", plusTwo: "Strength", plusOne: "Wisdom" },
+        },
+      })
+    ).status,
+  ).toBe(400);
+  expect(
+    (
+      await post({
+        backgroundId: 1,
+        backgroundChoices: {
+          ...acolyteChoices,
+          abilityIncreases: { mode: "split", plusTwo: "Wisdom", plusOne: "Wisdom" },
+        },
+      })
+    ).status,
+  ).toBe(400);
+  expect((await post({ backgroundId: 1, wis: 19, backgroundChoices: acolyteChoices })).status).toBe(
+    400,
+  );
+  expect((await post({ backgroundId: 4, backgroundChoices: acolyteChoices })).status).toBe(400);
+  expect(await (await app.request("/characters")).json()).toHaveLength(0);
+
+  const acolyte = await post({ backgroundId: 1, backgroundChoices: acolyteChoices });
+  expect(acolyte.status).toBe(201);
+  expect(await acolyte.json()).toMatchObject({
+    str: 10,
+    int: 11,
+    wis: 12,
+    cha: 10,
+    gold: 8,
+    backgroundChoices: {
+      abilityMode: "split",
+      plusTwo: "Wisdom",
+      plusOne: "Intelligence",
+      equipmentOption: "package",
+      goldGranted: 8,
+    },
+    feats: ["Magic Initiate (Cleric)"],
+    skillProficiencies: ["Insight", "Religion"],
+    toolProficiencies: ["Calligrapher's Supplies"],
+    inventory: expect.arrayContaining([
+      expect.objectContaining({ name: "Parchment", quantity: 10, source: "background" }),
+      expect.objectContaining({ name: "Holy Symbol", quantity: 1 }),
+    ]),
+  });
+
+  const soldier = await post({
+    backgroundId: 4,
+    backgroundChoices: {
+      abilityIncreases: { mode: "even" },
+      equipment: "gold",
+      toolChoice: "Dice Set",
+    },
+  });
+  expect(soldier.status).toBe(201);
+  expect(await soldier.json()).toMatchObject({
+    str: 11,
+    dex: 11,
+    con: 11,
+    int: 10,
+    gold: 50,
+    toolProficiencies: ["Dice Set"],
+    feats: ["Savage Attacker"],
+    inventory: [],
+  });
+  const missingTool = {
+    backgroundId: 4,
+    backgroundChoices: { abilityIncreases: { mode: "even" }, equipment: "package" },
+  };
+  expect((await post(missingTool)).status).toBe(400);
+  expect(
+    (
+      await post({
+        ...missingTool,
+        backgroundChoices: { ...missingTool.backgroundChoices, toolChoice: "Lute" },
+      })
+    ).status,
+  ).toBe(400);
+  const soldierPackage = await post({
+    backgroundId: 4,
+    backgroundChoices: { ...missingTool.backgroundChoices, toolChoice: "Playing Card Set" },
+  });
+  expect(await soldierPackage.json()).toMatchObject({
+    gold: 14,
+    inventory: expect.arrayContaining([
+      expect.objectContaining({ name: "Playing Card Set", quantity: 1 }),
+      expect.objectContaining({ name: "Arrow", quantity: 20 }),
+    ]),
+  });
+});
+
+test("changing a background requires new choices and replaces the old benefits", async () => {
+  const app = createApp(createDb(":memory:"));
+  await app.request(
+    "/characters",
+    json("POST", {
+      name: "Aria",
+      speciesId: 7,
+      classId: 1,
+      backgroundId: 1,
+      backgroundChoices: acolyteChoices,
+    }),
+  );
+  const patch = (body: unknown) => app.request("/characters/1", json("PATCH", body));
+
+  expect((await patch({ backgroundId: 2 })).status).toBe(400);
+  expect((await patch({ level: 2, backgroundChoices: acolyteChoices })).status).toBe(400);
+
+  const criminalChoices = { abilityIncreases: { mode: "even" }, equipment: "gold" };
+  const changed = await patch({ backgroundId: 2, backgroundChoices: criminalChoices });
+  expect(changed.status).toBe(200);
+  expect(await changed.json()).toMatchObject({
+    backgroundId: 2,
+    wis: 12,
+    int: 12,
+    dex: 11,
+    con: 11,
+    gold: 50,
+    feats: ["Alert"],
+    skillProficiencies: ["Sleight of Hand", "Stealth"],
+    toolProficiencies: ["Thieves' Tools"],
+    inventory: [],
+    backgroundChoices: { abilityMode: "even", equipmentOption: "gold", goldGranted: 50 },
+  });
+
+  expect((await app.request("/characters/1", { method: "DELETE" })).status).toBe(204);
 });

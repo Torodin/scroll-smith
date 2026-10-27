@@ -89,6 +89,42 @@ function CharacterDetail({
             ))}
           </div>
         </section>
+
+        <section className="detail-panel">
+          <p className="eyebrow">Background benefits</p>
+          <h2>Proficiencies and feats</h2>
+          <dl className="profile-list">
+            <div>
+              <dt>Origin feat</dt>
+              <dd>{character.feats.join(", ") || "None"}</dd>
+            </div>
+            <div>
+              <dt>Skills</dt>
+              <dd>{character.skillProficiencies.join(", ") || "None"}</dd>
+            </div>
+            <div>
+              <dt>Tools</dt>
+              <dd>{character.toolProficiencies.join(", ") || "None"}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="detail-panel">
+          <p className="eyebrow">Equipment</p>
+          <h2>{character.gold} GP</h2>
+          {character.inventory.length > 0 ? (
+            <ul className="species-empty">
+              {character.inventory.map((entry) => (
+                <li key={entry.itemId}>
+                  {entry.quantity > 1 ? `${entry.quantity} × ` : ""}
+                  {entry.name}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="species-empty">No items.</p>
+          )}
+        </section>
       </div>
     </section>
   );

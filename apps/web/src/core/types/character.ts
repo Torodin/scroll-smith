@@ -11,5 +11,10 @@ export type Character = {
   int: number;
   wis: number;
   cha: number;
+  gold: number;
+  feats: string[];
+  skillProficiencies: string[];
+  toolProficiencies: string[];
+  inventory: { itemId: number; name: string; quantity: number; source: string | null }[];
   createdAt: string;
 };

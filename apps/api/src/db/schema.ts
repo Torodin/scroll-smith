@@ -161,10 +161,58 @@ export const characters = sqliteTable("characters", {
   int: integer("int").notNull().default(10),
   wis: integer("wis").notNull().default(10),
   cha: integer("cha").notNull().default(10),
+  gold: integer("gold").notNull().default(0),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(current_timestamp)`),
 });
+
+export type BackgroundAbilityMode = "split" | "even";
+export type BackgroundEquipmentOption = "package" | "gold";
+
+export const characterBackgroundChoices = sqliteTable("character_background_choices", {
+  characterId: integer("character_id")
+    .primaryKey()
+    .references(() => characters.id),
+  abilityMode: text("ability_mode").$type<BackgroundAbilityMode>().notNull(),
+  plusTwo: text("plus_two").$type<BackgroundAbilityScore>(),
+  plusOne: text("plus_one").$type<BackgroundAbilityScore>(),
+  equipmentOption: text("equipment_option").$type<BackgroundEquipmentOption>().notNull(),
+  goldGranted: integer("gold_granted").notNull().default(0),
+});
+
+export const characterFeats = sqliteTable(
+  "character_feats",
+  {
+    characterId: integer("character_id")
+      .notNull()
+      .references(() => characters.id),
+    feat: text("feat").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.characterId, table.feat] })],
+);
+
+export const characterSkillProficiencies = sqliteTable(
+  "character_skill_proficiencies",
+  {
+    characterId: integer("character_id")
+      .notNull()
+      .references(() => characters.id),
+    skill: text("skill").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.characterId, table.skill] })],
+);
+
+export const characterToolProficiencies = sqliteTable(
+  "character_tool_proficiencies",
+  {
+    characterId: integer("character_id")
+      .notNull()
+      .references(() => characters.id),
+    tool: text("tool").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.characterId, table.tool] })],
+);
 
 export const characterSpeciesChoices = sqliteTable(
   "character_species_choices",
@@ -196,6 +244,7 @@ export const characterItems = sqliteTable(
       .notNull()
       .references(() => items.id),
     quantity: integer("quantity").notNull().default(1),
+    source: text("source"),
   },
   (table) => [primaryKey({ columns: [table.characterId, table.itemId] })],
 );
@@ -218,6 +267,10 @@ export const relations = defineRelations(
   {
     backgrounds,
     backgroundDetails,
+    characterBackgroundChoices,
+    characterFeats,
+    characterSkillProficiencies,
+    characterToolProficiencies,
     characterSpeciesChoices,
     characterItems,
     characterSpells,

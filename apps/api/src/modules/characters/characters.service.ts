@@ -1,20 +1,47 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { BetterSQLiteTransaction } from "drizzle-orm/better-sqlite3";
 import { HTTPException } from "hono/http-exception";
 import type { Db } from "../../db/client.ts";
 import {
+  backgroundDetails,
+  characterBackgroundChoices,
+  characterFeats,
   characterItems,
+  characterSkillProficiencies,
   characterSpeciesChoices,
+  characterToolProficiencies,
   characters,
   characterSpells,
+  items,
   speciesChoiceGroups,
   speciesChoiceOptions,
   relations,
 } from "../../db/schema.ts";
-import type { CreateCharacter, UpdateCharacter } from "./characters.schema.ts";
+import type { BackgroundAbilityScore } from "../../db/schema.ts";
+import { GAMING_SET_PLACEHOLDER, toolCategories } from "../../shared/tool-categories.ts";
+import type { BackgroundChoices, CreateCharacter, UpdateCharacter } from "./characters.schema.ts";
 
 type Transaction = BetterSQLiteTransaction<typeof relations>;
+type Reader = Pick<Db, "select">;
 type SpeciesChoice = { choiceGroupId: number; choiceOptionId: number };
+type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
+type Scores = Record<AbilityKey, number>;
+type ResolvedBackground = {
+  details: typeof backgroundDetails.$inferSelect;
+  choices: BackgroundChoices;
+  tool: string;
+};
+
+const abilityKeys: Record<BackgroundAbilityScore, AbilityKey> = {
+  Strength: "str",
+  Dexterity: "dex",
+  Constitution: "con",
+  Intelligence: "int",
+  Wisdom: "wis",
+  Charisma: "cha",
+};
+const MAX_ABILITY_SCORE = 20;
+const BACKGROUND_SOURCE = "background";
 
 function isForeignKeyError(err: unknown): boolean {
   const e = err as { code?: string; cause?: { code?: string } };
@@ -36,24 +63,37 @@ export class CharactersService {
       .all()
       .map((character) => ({
         ...character,
-        speciesChoices: this.getSelections(character.id),
+        ...this.getExtras(this.db, character.id),
       }));
   }
 
   get(id: number) {
     const row = this.db.select().from(characters).where(eq(characters.id, id)).get();
     if (!row) throw new HTTPException(404, { message: "Character not found" });
-    return { ...row, speciesChoices: this.getSelections(id) };
+    return { ...row, ...this.getExtras(this.db, id) };
   }
 
   create(input: CreateCharacter) {
     try {
       return this.db.transaction((tx) => {
-        const { speciesChoices = [], ...characterInput } = input;
+        const { speciesChoices = [], backgroundChoices, ...characterInput } = input;
         this.validateSpeciesChoices(tx, characterInput.speciesId, speciesChoices);
-        const character = tx.insert(characters).values(characterInput).returning().get();
+        const background = this.resolveBackground(
+          tx,
+          characterInput.backgroundId,
+          backgroundChoices,
+        );
+        const scores = background
+          ? this.applyAbilityIncreases(characterInput, background)
+          : undefined;
+        const character = tx
+          .insert(characters)
+          .values({ ...characterInput, ...scores })
+          .returning()
+          .get();
         if (!character) throw new Error("Character insert returned no row");
         this.saveSpeciesChoices(tx, character.id, speciesChoices);
+        if (background) this.saveBackground(tx, character.id, background);
         return this.getWithChoices(tx, character.id);
       });
     } catch (err) {
@@ -67,20 +107,39 @@ export class CharactersService {
         const current = tx.select().from(characters).where(eq(characters.id, id)).get();
         if (!current) throw new HTTPException(404, { message: "Character not found" });
 
-        const { speciesChoices, ...characterInput } = input;
+        const { speciesChoices, backgroundChoices, ...characterInput } = input;
         const speciesId = characterInput.speciesId ?? current.speciesId;
         const replaceChoices = speciesId !== current.speciesId || speciesChoices !== undefined;
         const choices = speciesChoices ?? [];
         if (replaceChoices) this.validateSpeciesChoices(tx, speciesId, choices);
 
+        const backgroundChanged =
+          characterInput.backgroundId !== undefined &&
+          characterInput.backgroundId !== current.backgroundId;
+        if (backgroundChoices && !backgroundChanged) {
+          throw new HTTPException(400, {
+            message: "Background choices can only be sent when changing the background",
+          });
+        }
+        const background = backgroundChanged
+          ? this.resolveBackground(tx, characterInput.backgroundId!, backgroundChoices)
+          : null;
+        const scores = background
+          ? this.applyAbilityIncreases({ ...current, ...characterInput }, background)
+          : undefined;
+
         const updated = tx
           .update(characters)
-          .set(characterInput)
+          .set({ ...characterInput, ...scores })
           .where(eq(characters.id, id))
           .returning()
           .get();
         if (!updated) throw new HTTPException(404, { message: "Character not found" });
         if (replaceChoices) this.saveSpeciesChoices(tx, id, choices);
+        if (backgroundChanged) {
+          this.clearBackground(tx, id);
+          if (background) this.saveBackground(tx, id, background);
+        }
         return this.getWithChoices(tx, id);
       });
     } catch (err) {
@@ -93,9 +152,191 @@ export class CharactersService {
       tx.delete(characterItems).where(eq(characterItems.characterId, id)).run();
       tx.delete(characterSpells).where(eq(characterSpells.characterId, id)).run();
       tx.delete(characterSpeciesChoices).where(eq(characterSpeciesChoices.characterId, id)).run();
+      tx.delete(characterBackgroundChoices)
+        .where(eq(characterBackgroundChoices.characterId, id))
+        .run();
+      tx.delete(characterFeats).where(eq(characterFeats.characterId, id)).run();
+      tx.delete(characterSkillProficiencies)
+        .where(eq(characterSkillProficiencies.characterId, id))
+        .run();
+      tx.delete(characterToolProficiencies)
+        .where(eq(characterToolProficiencies.characterId, id))
+        .run();
       const deleted = tx.delete(characters).where(eq(characters.id, id)).returning().all();
       if (deleted.length === 0) throw new HTTPException(404, { message: "Character not found" });
     });
+  }
+
+  private resolveBackground(
+    tx: Transaction,
+    backgroundId: number,
+    choices: BackgroundChoices | undefined,
+  ): ResolvedBackground | null {
+    const details = tx
+      .select()
+      .from(backgroundDetails)
+      .where(eq(backgroundDetails.backgroundId, backgroundId))
+      .get();
+    if (!details) {
+      if (choices) throw this.invalidBackgroundChoices("This background has no choices to make");
+      return null;
+    }
+    if (!choices) throw this.invalidBackgroundChoices("Background choices are required");
+
+    const increases = choices.abilityIncreases;
+    if (increases.mode === "split") {
+      const allowed = details.abilityScores;
+      if (
+        increases.plusTwo === increases.plusOne ||
+        !allowed.includes(increases.plusTwo) ||
+        !allowed.includes(increases.plusOne)
+      ) {
+        throw this.invalidBackgroundChoices(
+          "Ability increases must use two different abilities offered by the background",
+        );
+      }
+    }
+
+    const proficiency = details.toolProficiency;
+    let tool: string;
+    if (proficiency.type === "specific") {
+      if (choices.toolChoice !== undefined) {
+        throw this.invalidBackgroundChoices("This background does not offer a tool choice");
+      }
+      tool = proficiency.name;
+    } else {
+      const allowedTools = toolCategories[proficiency.category] ?? [];
+      if (!choices.toolChoice || !allowedTools.includes(choices.toolChoice)) {
+        throw this.invalidBackgroundChoices(
+          `Choose a valid ${proficiency.category} for the tool proficiency`,
+        );
+      }
+      tool = choices.toolChoice;
+    }
+
+    return { details, choices, tool };
+  }
+
+  private applyAbilityIncreases(current: Scores, background: ResolvedBackground): Scores {
+    const { details, choices } = background;
+    const increases = choices.abilityIncreases;
+    const bonus: Partial<Scores> =
+      increases.mode === "split"
+        ? { [abilityKeys[increases.plusTwo]]: 2, [abilityKeys[increases.plusOne]]: 1 }
+        : Object.fromEntries(details.abilityScores.map((ability) => [abilityKeys[ability], 1]));
+
+    const next = { ...current };
+    for (const key of Object.keys(bonus) as AbilityKey[]) {
+      next[key] = current[key] + (bonus[key] ?? 0);
+      if (next[key] > MAX_ABILITY_SCORE) {
+        throw this.invalidBackgroundChoices(
+          `Ability increases cannot raise a score above ${MAX_ABILITY_SCORE}`,
+        );
+      }
+    }
+    return {
+      str: next.str,
+      dex: next.dex,
+      con: next.con,
+      int: next.int,
+      wis: next.wis,
+      cha: next.cha,
+    };
+  }
+
+  private saveBackground(tx: Transaction, characterId: number, background: ResolvedBackground) {
+    const { details, choices, tool } = background;
+    const useGold = choices.equipment === "gold";
+    const goldGranted = useGold
+      ? details.equipment.alternative.amount
+      : details.equipment.package.gold;
+    const increases = choices.abilityIncreases;
+
+    tx.insert(characterBackgroundChoices)
+      .values({
+        characterId,
+        abilityMode: increases.mode,
+        plusTwo: increases.mode === "split" ? increases.plusTwo : null,
+        plusOne: increases.mode === "split" ? increases.plusOne : null,
+        equipmentOption: choices.equipment,
+        goldGranted,
+      })
+      .run();
+    tx.insert(characterFeats).values({ characterId, feat: details.feat }).run();
+    tx.insert(characterSkillProficiencies)
+      .values(details.skillProficiencies.map((skill) => ({ characterId, skill })))
+      .run();
+    tx.insert(characterToolProficiencies).values({ characterId, tool }).run();
+    tx.update(characters)
+      .set({ gold: sql`${characters.gold} + ${goldGranted}` })
+      .where(eq(characters.id, characterId))
+      .run();
+
+    if (useGold) return;
+    const entries = details.equipment.package.items.map((entry) => ({
+      name: entry.item === GAMING_SET_PLACEHOLDER ? tool : entry.item,
+      quantity: entry.quantity,
+    }));
+    const rows = tx
+      .select({ id: items.id, name: items.name })
+      .from(items)
+      .where(
+        inArray(
+          items.name,
+          entries.map((entry) => entry.name),
+        ),
+      )
+      .all();
+    tx.insert(characterItems)
+      .values(
+        entries.map((entry) => {
+          const item = rows.find((row) => row.name === entry.name);
+          if (!item) throw new Error(`Missing item for background equipment: ${entry.name}`);
+          return {
+            characterId,
+            itemId: item.id,
+            quantity: entry.quantity,
+            source: BACKGROUND_SOURCE,
+          };
+        }),
+      )
+      .run();
+  }
+
+  private clearBackground(tx: Transaction, characterId: number) {
+    const previous = tx
+      .select()
+      .from(characterBackgroundChoices)
+      .where(eq(characterBackgroundChoices.characterId, characterId))
+      .get();
+    if (previous) {
+      tx.update(characters)
+        .set({ gold: sql`max(${characters.gold} - ${previous.goldGranted}, 0)` })
+        .where(eq(characters.id, characterId))
+        .run();
+    }
+    tx.delete(characterItems)
+      .where(
+        and(
+          eq(characterItems.characterId, characterId),
+          eq(characterItems.source, BACKGROUND_SOURCE),
+        ),
+      )
+      .run();
+    tx.delete(characterBackgroundChoices)
+      .where(eq(characterBackgroundChoices.characterId, characterId))
+      .run();
+    tx.delete(characterFeats).where(eq(characterFeats.characterId, characterId)).run();
+    tx.delete(characterSkillProficiencies)
+      .where(eq(characterSkillProficiencies.characterId, characterId))
+      .run();
+    tx.delete(characterToolProficiencies)
+      .where(eq(characterToolProficiencies.characterId, characterId))
+      .run();
+  }
+
+  private invalidBackgroundChoices(message: string) {
+    return new HTTPException(400, { message });
   }
 
   private validateSpeciesChoices(
@@ -155,20 +396,11 @@ export class CharactersService {
   private getWithChoices(tx: Transaction, id: number) {
     const row = tx.select().from(characters).where(eq(characters.id, id)).get();
     if (!row) throw new HTTPException(404, { message: "Character not found" });
-    const speciesChoices = tx
-      .select({
-        choiceGroupId: characterSpeciesChoices.choiceGroupId,
-        choiceOptionId: characterSpeciesChoices.choiceOptionId,
-      })
-      .from(characterSpeciesChoices)
-      .where(eq(characterSpeciesChoices.characterId, id))
-      .orderBy(characterSpeciesChoices.choiceGroupId, characterSpeciesChoices.choiceOptionId)
-      .all();
-    return { ...row, speciesChoices };
+    return { ...row, ...this.getExtras(tx, id) };
   }
 
-  private getSelections(characterId: number) {
-    return this.db
+  private getExtras(reader: Reader, characterId: number) {
+    const speciesChoices = reader
       .select({
         choiceGroupId: characterSpeciesChoices.choiceGroupId,
         choiceOptionId: characterSpeciesChoices.choiceOptionId,
@@ -177,6 +409,59 @@ export class CharactersService {
       .where(eq(characterSpeciesChoices.characterId, characterId))
       .orderBy(characterSpeciesChoices.choiceGroupId, characterSpeciesChoices.choiceOptionId)
       .all();
+    const backgroundChoices =
+      reader
+        .select({
+          abilityMode: characterBackgroundChoices.abilityMode,
+          plusTwo: characterBackgroundChoices.plusTwo,
+          plusOne: characterBackgroundChoices.plusOne,
+          equipmentOption: characterBackgroundChoices.equipmentOption,
+          goldGranted: characterBackgroundChoices.goldGranted,
+        })
+        .from(characterBackgroundChoices)
+        .where(eq(characterBackgroundChoices.characterId, characterId))
+        .get() ?? null;
+    const feats = reader
+      .select({ feat: characterFeats.feat })
+      .from(characterFeats)
+      .where(eq(characterFeats.characterId, characterId))
+      .orderBy(characterFeats.feat)
+      .all()
+      .map((row) => row.feat);
+    const skillProficiencies = reader
+      .select({ skill: characterSkillProficiencies.skill })
+      .from(characterSkillProficiencies)
+      .where(eq(characterSkillProficiencies.characterId, characterId))
+      .orderBy(characterSkillProficiencies.skill)
+      .all()
+      .map((row) => row.skill);
+    const toolProficiencies = reader
+      .select({ tool: characterToolProficiencies.tool })
+      .from(characterToolProficiencies)
+      .where(eq(characterToolProficiencies.characterId, characterId))
+      .orderBy(characterToolProficiencies.tool)
+      .all()
+      .map((row) => row.tool);
+    const inventory = reader
+      .select({
+        itemId: items.id,
+        name: items.name,
+        quantity: characterItems.quantity,
+        source: characterItems.source,
+      })
+      .from(characterItems)
+      .innerJoin(items, eq(items.id, characterItems.itemId))
+      .where(eq(characterItems.characterId, characterId))
+      .orderBy(items.name)
+      .all();
+    return {
+      speciesChoices,
+      backgroundChoices,
+      feats,
+      skillProficiencies,
+      toolProficiencies,
+      inventory,
+    };
   }
 
   private invalidSpeciesChoices() {
