@@ -17,5 +17,9 @@ export type Character = {
   toolProficiencies: string[];
   inventory: { itemId: number; name: string; quantity: number; source: string | null }[];
   spells: { spellId: number; name: string; level: number; school: string; prepared: boolean }[];
+  speciesChoices: { choiceGroupId: number; choiceOptionId: number }[];
+  classChoices: {
+    featureChoices: { choiceGroupId: number; choiceOptionId: number }[];
+  } | null;
   createdAt: string;
 };

@@ -805,7 +805,7 @@ h2 {
   font-weight: 650;
 }
 
-.detail-level {
+.detail-hero .button-danger {
   margin-left: auto;
 }
 
@@ -813,6 +813,115 @@ h2 {
   display: grid;
   grid-template-columns: 1fr 1.15fr;
   gap: 16px;
+}
+
+.detail-panel-wide {
+  grid-column: 1 / -1;
+}
+
+.detail-tabs-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.detail-tabs {
+  display: flex;
+  gap: 3px;
+  padding: 10px 12px 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+}
+
+.detail-tab {
+  flex: 0 0 auto;
+  padding: 12px 14px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.detail-tab:hover,
+.detail-tab-active {
+  color: var(--forest);
+}
+
+.detail-tab-active {
+  border-bottom-color: var(--forest);
+}
+
+.detail-tab:focus-visible,
+.detail-tab-panel:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.detail-tab-panel {
+  min-height: 260px;
+  padding: 27px;
+}
+
+.detail-list,
+.feature-list {
+  margin: 18px 0 0;
+  padding-left: 20px;
+}
+
+.detail-list li {
+  margin-bottom: 8px;
+}
+
+.empty-copy,
+.background-description {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.feature-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: 25px;
+}
+
+.feature-groups h3 {
+  margin: 0;
+  color: var(--ink);
+  font: 600 17px/1.3 var(--serif);
+}
+
+.feature-list {
+  display: grid;
+  gap: 15px;
+  margin-top: 14px;
+}
+
+.feature-list li {
+  padding-left: 3px;
+}
+
+.feature-list strong,
+.feature-list span {
+  display: block;
+}
+
+.feature-list strong {
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+
+.feature-list span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.background-description {
+  max-width: 62ch;
+  margin: 18px 0 23px;
 }
 
 .detail-panel h2 {
@@ -847,7 +956,7 @@ h2 {
 
 .ability-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 9px;
 }
 
@@ -907,6 +1016,10 @@ h2 {
   }
 
   .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-groups {
     grid-template-columns: 1fr;
   }
 }
@@ -969,10 +1082,6 @@ h2 {
     height: 60px;
     border-radius: 18px 18px 18px 5px;
     font-size: 27px;
-  }
-
-  .detail-level {
-    display: none;
   }
 
   .footer {

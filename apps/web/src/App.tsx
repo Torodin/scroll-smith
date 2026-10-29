@@ -181,6 +181,7 @@ function App() {
               characterId={page.characterId}
               onBack={() => setPage({ name: "dashboard" })}
               onDelete={deleteCharacter}
+              loadClass={(id) => request<ClassDetail>(`/classes/${id}`)}
             />
           )
         ) : null}
