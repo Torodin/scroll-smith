@@ -1,6 +1,24 @@
 import { expect, test } from "vite-plus/test";
 import { createApp } from "../src/app.ts";
 import { createDb } from "../src/db/client.ts";
+import { characters } from "../src/db/schema.ts";
+
+const json = (method: string, body: unknown) => ({
+  method,
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+const backgroundProperties = {
+  abilityScores: ["Strength", "Wisdom", "Charisma"],
+  feat: "Magic Initiate (Druid)",
+  skillProficiencies: ["Animal Handling", "Nature"],
+  toolProficiency: { type: "choice", category: "Artisan's Tools" },
+  equipment: {
+    package: { items: [{ item: "Herbalism Kit", quantity: 1 }], gold: 10 },
+    alternative: { amount: 50, currency: "GP" },
+  },
+};
 
 test("backgrounds", async () => {
   const app = createApp(createDb(":memory:"));
@@ -112,4 +130,61 @@ test("backgrounds", async () => {
   });
   expect((await app.request("/backgrounds/999")).status).toBe(404);
   expect((await app.request("/backgrounds/abc")).status).toBe(400);
+});
+
+test("background CRUD", async () => {
+  const app = createApp(createDb(":memory:"));
+  const created = await app.request(
+    "/backgrounds",
+    json("POST", {
+      name: "  Hermit ",
+      description: "  A secluded life. ",
+      properties: backgroundProperties,
+    }),
+  );
+  expect(created.status).toBe(201);
+  expect(await created.json()).toMatchObject({
+    id: 5,
+    name: "Hermit",
+    description: "A secluded life.",
+    properties: backgroundProperties,
+  });
+  expect(await (await app.request("/backgrounds")).json()).toHaveLength(5);
+
+  const patched = await app.request(
+    "/backgrounds/5",
+    json("PATCH", { name: "Wanderer", description: "A life on the road." }),
+  );
+  expect(await patched.json()).toMatchObject({
+    name: "Wanderer",
+    description: "A life on the road.",
+    properties: backgroundProperties,
+  });
+
+  const cleared = await app.request("/backgrounds/5", json("PATCH", { properties: null }));
+  expect(await cleared.json()).toMatchObject({ name: "Wanderer", properties: null });
+  expect((await app.request("/backgrounds/5", { method: "DELETE" })).status).toBe(204);
+  expect((await app.request("/backgrounds/5")).status).toBe(404);
+  expect((await app.request("/backgrounds/5", { method: "DELETE" })).status).toBe(404);
+});
+
+test("background CRUD validation and referenced deletion", async () => {
+  const db = createDb(":memory:");
+  const app = createApp(db);
+  const post = (body: unknown) => app.request("/backgrounds", json("POST", body));
+  expect((await post({ name: "", description: "Description" })).status).toBe(400);
+  expect((await post({ name: "Valid" })).status).toBe(400);
+  expect((await app.request("/backgrounds/abc", json("PATCH", { name: "Valid" }))).status).toBe(
+    400,
+  );
+  expect((await app.request("/backgrounds/1", json("PATCH", {}))).status).toBe(400);
+  expect((await app.request("/backgrounds/999", json("PATCH", { name: "Missing" }))).status).toBe(
+    404,
+  );
+
+  db.insert(characters)
+    .values({ name: "Test character", speciesId: 7, backgroundId: 1, classId: 1 })
+    .run();
+  expect((await app.request("/backgrounds/1", { method: "DELETE" })).status).toBe(409);
+  expect((await app.request("/backgrounds/1")).status).toBe(200);
 });
