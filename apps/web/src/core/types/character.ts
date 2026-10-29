@@ -19,7 +19,12 @@ export type Character = {
   spells: { spellId: number; name: string; level: number; school: string; prepared: boolean }[];
   speciesChoices: { choiceGroupId: number; choiceOptionId: number }[];
   classChoices: {
+    skills: string[];
+    tools: string[];
+    expertise: string[];
+    weaponMasteries: string[];
     featureChoices: { choiceGroupId: number; choiceOptionId: number }[];
   } | null;
+  subclassId: number | null;
   createdAt: string;
 };

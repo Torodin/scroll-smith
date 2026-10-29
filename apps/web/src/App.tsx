@@ -5,16 +5,25 @@ import type {
   ClassDetail,
   ClassSummary,
   DashboardData,
+  LevelUpInput,
   SpeciesOption,
   SpellOption,
 } from "./core/types";
 import CharacterCreation from "./components/CharacterCreation";
 import type { CharacterCreationInput } from "./components/CharacterCreation";
 import CharacterDetail from "./components/CharacterDetail/CharacterDetail";
+import LevelUp from "./components/LevelUp";
+import SpellEditor from "./components/SpellEditor";
+import { optionName } from "./components/option-name";
 import Dashboard from "./components/Dashboard";
 import "./App.css";
 
-type Page = { name: "dashboard" } | { name: "create" } | { name: "detail"; characterId: number };
+type Page =
+  | { name: "dashboard" }
+  | { name: "create" }
+  | { name: "spells" }
+  | { name: "detail"; characterId: number }
+  | { name: "levelUp"; characterId: number };
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -56,6 +65,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   return response.json() as Promise<T>;
 }
+
+const loadClass = (id: number) => request<ClassDetail>(`/classes/${id}`);
+const loadAllSpells = (classId: number) => request<SpellOption[]>(`/spells?classId=${classId}`);
+const loadSpellCatalog = () => request<SpellOption[]>("/spells");
+
+type SpellMutation = Omit<SpellOption, "id" | "classes"> & { classIds: number[] };
+
+const createSpell = (input: SpellMutation) =>
+  request<SpellOption>("/spells", { method: "POST", body: JSON.stringify(input) });
+const updateSpell = (id: number, input: SpellMutation) =>
+  request<SpellOption>(`/spells/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+const deleteSpell = (id: number) => request<void>(`/spells/${id}`, { method: "DELETE" });
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
@@ -110,6 +131,25 @@ function App() {
     return character;
   };
 
+  const levelUpCharacter = async (characterId: number, input: LevelUpInput) => {
+    const character = await request<Character>(`/characters/${characterId}/level-up`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+
+    setData((current) =>
+      current
+        ? {
+            ...current,
+            characters: current.characters.map((item) =>
+              item.id === characterId ? character : item,
+            ),
+          }
+        : current,
+    );
+    setPage({ name: "detail", characterId });
+  };
+
   const deleteCharacter = async (characterId: number) => {
     await request<void>(`/characters/${characterId}`, { method: "DELETE" });
 
@@ -136,6 +176,14 @@ function App() {
           <span>Scroll Smith</span>
         </button>
         <span className="topbar-note">Your characters, ready for adventure</span>
+        <button
+          className="button button-secondary topbar-spells-button"
+          type="button"
+          aria-current={page.name === "spells" ? "page" : undefined}
+          onClick={() => setPage({ name: "spells" })}
+        >
+          Manage spells
+        </button>
       </header>
 
       <main className="main-content">
@@ -175,14 +223,40 @@ function App() {
                 request<SpellOption[]>(`/spells?classId=${classId}&maxLevel=1`)
               }
             />
+          ) : page.name === "spells" ? (
+            <SpellEditor
+              classes={data.classes}
+              loadSpells={loadSpellCatalog}
+              createSpell={createSpell}
+              updateSpell={updateSpell}
+              deleteSpell={deleteSpell}
+            />
+          ) : page.name === "levelUp" ? (
+            (() => {
+              const levelingCharacter = data.characters.find(
+                (item) => item.id === page.characterId,
+              );
+              return levelingCharacter ? (
+                <LevelUp
+                  key={levelingCharacter.id}
+                  character={levelingCharacter}
+                  className={optionName(data.classes, levelingCharacter.classId)}
+                  loadClass={loadClass}
+                  loadSpells={loadAllSpells}
+                  onCancel={() => setPage({ name: "detail", characterId: page.characterId })}
+                  onLevelUp={(input) => levelUpCharacter(page.characterId, input)}
+                />
+              ) : null;
+            })()
           ) : (
             <CharacterDetail
               data={data}
               characterId={page.characterId}
               onBack={() => setPage({ name: "dashboard" })}
               onDelete={deleteCharacter}
-              loadClass={(id) => request<ClassDetail>(`/classes/${id}`)}
-              loadSpells={(classId) => request<SpellOption[]>(`/spells?classId=${classId}`)}
+              onLevelUp={() => setPage({ name: "levelUp", characterId: page.characterId })}
+              loadClass={loadClass}
+              loadSpells={loadAllSpells}
             />
           )
         ) : null}

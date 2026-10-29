@@ -43,7 +43,7 @@ const toolOptions: Record<string, string[]> = {
   ],
 };
 
-const weaponOptions = [
+export const weaponOptions = [
   "Club",
   "Dagger",
   "Greatclub",
@@ -153,7 +153,7 @@ export function buildClassChoices(
   };
 }
 
-function PickList({
+export function PickList({
   legend,
   options,
   value,

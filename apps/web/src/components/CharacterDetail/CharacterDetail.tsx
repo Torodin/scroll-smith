@@ -12,6 +12,7 @@ function CharacterDetail({
   characterId,
   onBack,
   onDelete,
+  onLevelUp,
   loadClass,
   loadSpells,
 }: {
@@ -19,6 +20,7 @@ function CharacterDetail({
   characterId: number;
   onBack: () => void;
   onDelete: (characterId: number) => Promise<void>;
+  onLevelUp: () => void;
   loadClass: (classId: number) => Promise<ClassDetail>;
   loadSpells: (classId: number) => Promise<SpellOption[]>;
 }) {
@@ -52,13 +54,14 @@ function CharacterDetail({
     };
   }, [classId, loadClass]);
 
-  const classFeatures = useMemo(
-    () =>
-      character
-        ? (classDetail?.features.filter((feature) => feature.level <= character.level) ?? [])
-        : [],
-    [character, classDetail],
-  );
+  const classFeatures = useMemo(() => {
+    if (!character || !classDetail) return [];
+    const subclassFeatures =
+      classDetail.subclasses.find((item) => item.id === character.subclassId)?.features ?? [];
+    return [...classDetail.features, ...subclassFeatures]
+      .filter((feature) => feature.level <= character.level)
+      .sort((a, b) => a.level - b.level);
+  }, [character, classDetail]);
   const speciesTraits = useMemo(() => {
     if (!character) return [];
     const species = data.species.find((item) => item.id === character.speciesId);
@@ -137,6 +140,14 @@ function CharacterDetail({
             {optionName(data.backgrounds, character.backgroundId)}
           </p>
         </div>
+        <button
+          className="button button-primary"
+          type="button"
+          disabled={character.level >= 20}
+          onClick={onLevelUp}
+        >
+          Level up
+        </button>
         <button className="button button-primary" type="button" onClick={() => setPrinting(true)}>
           Print cards
         </button>

@@ -1,7 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { idParamSchema } from "../../shared/params.schema.ts";
-import { createCharacterSchema, updateCharacterSchema } from "./characters.schema.ts";
+import {
+  createCharacterSchema,
+  levelUpSchema,
+  updateCharacterSchema,
+} from "./characters.schema.ts";
 import type { CharactersService } from "./characters.service.ts";
 
 export function createCharactersRoutes(service: CharactersService) {
@@ -12,6 +16,12 @@ export function createCharactersRoutes(service: CharactersService) {
     )
     .post("/", zValidator("json", createCharacterSchema), (c) =>
       c.json(service.create(c.req.valid("json")), 201),
+    )
+    .post(
+      "/:id/level-up",
+      zValidator("param", idParamSchema),
+      zValidator("json", levelUpSchema),
+      (c) => c.json(service.levelUp(c.req.valid("param").id, c.req.valid("json"))),
     )
     .patch(
       "/:id",

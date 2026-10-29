@@ -1,0 +1,2166 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "4a355b36-1832-476d-8ac1-20ccb4725e37",
+  "prevIds": ["323d7c14-1ba8-4ae8-b033-43f9c8764b5e"],
+  "ddl": [
+    {
+      "name": "background_details",
+      "entityType": "tables"
+    },
+    {
+      "name": "backgrounds",
+      "entityType": "tables"
+    },
+    {
+      "name": "character_background_choices",
+      "entityType": "tables"
+    },
+    {
+      "name": "character_class_choices",
+      "entityType": "tables"
+    },
+    {
+      "name": "character_class_selections",
+      "entityType": "tables"
+    },
+    {
+      "name": "character_feats",
+      "entityType": "tables"
+    },
+    {
+      "name": "character_items",
+      "entityType": "tables"
+    },
+    {
+      "name": "character_skill_proficiencies",
+      "entityType": "tables"
+    },
+    {
+      "name": "character_species_choices",
+      "entityType": "tables"
+    },
+    {
+      "name": "character_spells",
+      "entityType": "tables"
+    },
+    {
+      "name": "character_subclasses",
+      "entityType": "tables"
+    },
+    {
+      "name": "character_tool_proficiencies",
+      "entityType": "tables"
+    },
+    {
+      "name": "characters",
+      "entityType": "tables"
+    },
+    {
+      "name": "class_choice_groups",
+      "entityType": "tables"
+    },
+    {
+      "name": "class_choice_options",
+      "entityType": "tables"
+    },
+    {
+      "name": "class_features",
+      "entityType": "tables"
+    },
+    {
+      "name": "class_levels",
+      "entityType": "tables"
+    },
+    {
+      "name": "classes",
+      "entityType": "tables"
+    },
+    {
+      "name": "features",
+      "entityType": "tables"
+    },
+    {
+      "name": "items",
+      "entityType": "tables"
+    },
+    {
+      "name": "species",
+      "entityType": "tables"
+    },
+    {
+      "name": "species_choice_groups",
+      "entityType": "tables"
+    },
+    {
+      "name": "species_choice_option_to_features",
+      "entityType": "tables"
+    },
+    {
+      "name": "species_choice_options",
+      "entityType": "tables"
+    },
+    {
+      "name": "species_to_features",
+      "entityType": "tables"
+    },
+    {
+      "name": "spell_classes",
+      "entityType": "tables"
+    },
+    {
+      "name": "spells",
+      "entityType": "tables"
+    },
+    {
+      "name": "subclasses",
+      "entityType": "tables"
+    },
+    {
+      "table": "background_details",
+      "name": "background_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "background_details",
+      "name": "ability_scores",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "background_details",
+      "name": "feat",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "background_details",
+      "name": "skill_proficiencies",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "background_details",
+      "name": "tool_proficiency",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "background_details",
+      "name": "equipment",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "backgrounds",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "backgrounds",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "backgrounds",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_background_choices",
+      "name": "character_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_background_choices",
+      "name": "ability_mode",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_background_choices",
+      "name": "plus_two",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_background_choices",
+      "name": "plus_one",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_background_choices",
+      "name": "equipment_option",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_background_choices",
+      "name": "gold_granted",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_class_choices",
+      "name": "character_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_class_choices",
+      "name": "choice_group_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_class_choices",
+      "name": "choice_option_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_class_selections",
+      "name": "character_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_class_selections",
+      "name": "equipment_option",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_class_selections",
+      "name": "gold_granted",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_class_selections",
+      "name": "skills",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_class_selections",
+      "name": "tools",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_class_selections",
+      "name": "expertise",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_class_selections",
+      "name": "weapon_masteries",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_feats",
+      "name": "character_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_feats",
+      "name": "feat",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_items",
+      "name": "character_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_items",
+      "name": "item_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_items",
+      "name": "quantity",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_items",
+      "name": "source",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'manual'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_skill_proficiencies",
+      "name": "character_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_skill_proficiencies",
+      "name": "skill",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_species_choices",
+      "name": "character_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_species_choices",
+      "name": "choice_group_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_species_choices",
+      "name": "choice_option_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_spells",
+      "name": "character_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_spells",
+      "name": "spell_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_spells",
+      "name": "prepared",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_subclasses",
+      "name": "character_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_subclasses",
+      "name": "subclass_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_tool_proficiencies",
+      "name": "character_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "character_tool_proficiencies",
+      "name": "tool",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "level",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "species_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "background_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "class_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "str",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "10",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "dex",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "10",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "con",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "10",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "int",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "10",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "wis",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "10",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "cha",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "10",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "gold",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "characters",
+      "name": "created_at",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(current_timestamp)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_groups",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_groups",
+      "name": "class_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_groups",
+      "name": "level",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_groups",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_groups",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_groups",
+      "name": "choice_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_options",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_options",
+      "name": "choice_group_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_options",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_options",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_options",
+      "name": "extra_cantrips",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_features",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_features",
+      "name": "class_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_features",
+      "name": "subclass_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_features",
+      "name": "level",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_features",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_features",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_levels",
+      "name": "class_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_levels",
+      "name": "level",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_levels",
+      "name": "proficiency_bonus",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_levels",
+      "name": "columns",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_levels",
+      "name": "spell_slots",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "hit_point_die",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "primary_ability",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "saving_throws",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "armor_training",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "weapon_proficiencies",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "tool_proficiencies",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "tool_choice",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "skill_choice_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "skill_choice_options",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "expertise_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "weapon_mastery_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "spellbook_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "spellcasting_ability",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "classes",
+      "name": "starting_equipment",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'{\"packages\":{},\"goldAlternative\":0}'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "features",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "features",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "features",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "features",
+      "name": "action_cost",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "features",
+      "name": "uses",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "items",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "items",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "items",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "items",
+      "name": "category",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "items",
+      "name": "weight",
+      "type": "real",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_groups",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_groups",
+      "name": "species_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_groups",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_groups",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_groups",
+      "name": "choice_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_option_to_features",
+      "name": "choice_group_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_option_to_features",
+      "name": "choice_option_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_option_to_features",
+      "name": "feature_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_options",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_options",
+      "name": "choice_group_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_options",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_choice_options",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_to_features",
+      "name": "specie_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "species_to_features",
+      "name": "feature_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spell_classes",
+      "name": "spell_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spell_classes",
+      "name": "class_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "level",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "school",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "casting_time",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "range",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "components",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "material",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "duration",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "concentration",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "ritual",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "spells",
+      "name": "higher_level",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "subclasses",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "subclasses",
+      "name": "class_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "subclasses",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "subclasses",
+      "name": "description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "class_choice_options",
+      "name": "class_choice_options_group_id_id",
+      "columns": [
+        {
+          "value": "choice_group_id",
+          "isExpression": false
+        },
+        {
+          "value": "id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "species_choice_options",
+      "name": "species_choice_options_group_id_id",
+      "columns": [
+        {
+          "value": "choice_group_id",
+          "isExpression": false
+        },
+        {
+          "value": "id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "background_details",
+      "name": "fk_background_details_background_id_backgrounds_id_fk",
+      "columns": ["background_id"],
+      "tableTo": "backgrounds",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_background_choices",
+      "name": "fk_character_background_choices_character_id_characters_id_fk",
+      "columns": ["character_id"],
+      "tableTo": "characters",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_class_choices",
+      "name": "fk_character_class_choices_character_id_characters_id_fk",
+      "columns": ["character_id"],
+      "tableTo": "characters",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_class_choices",
+      "name": "fk_character_class_choices_choice_group_id_class_choice_groups_id_fk",
+      "columns": ["choice_group_id"],
+      "tableTo": "class_choice_groups",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_class_choices",
+      "name": "fk_character_class_choices_choice_group_id_choice_option_id_class_choice_options_choice_group_id_id_fk",
+      "columns": ["choice_group_id", "choice_option_id"],
+      "tableTo": "class_choice_options",
+      "columnsTo": ["choice_group_id", "id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_class_selections",
+      "name": "fk_character_class_selections_character_id_characters_id_fk",
+      "columns": ["character_id"],
+      "tableTo": "characters",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_feats",
+      "name": "fk_character_feats_character_id_characters_id_fk",
+      "columns": ["character_id"],
+      "tableTo": "characters",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_items",
+      "name": "fk_character_items_character_id_characters_id_fk",
+      "columns": ["character_id"],
+      "tableTo": "characters",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_items",
+      "name": "fk_character_items_item_id_items_id_fk",
+      "columns": ["item_id"],
+      "tableTo": "items",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_skill_proficiencies",
+      "name": "fk_character_skill_proficiencies_character_id_characters_id_fk",
+      "columns": ["character_id"],
+      "tableTo": "characters",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_species_choices",
+      "name": "fk_character_species_choices_character_id_characters_id_fk",
+      "columns": ["character_id"],
+      "tableTo": "characters",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_species_choices",
+      "name": "fk_character_species_choices_choice_group_id_species_choice_groups_id_fk",
+      "columns": ["choice_group_id"],
+      "tableTo": "species_choice_groups",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_species_choices",
+      "name": "fk_character_species_choices_choice_group_id_choice_option_id_species_choice_options_choice_group_id_id_fk",
+      "columns": ["choice_group_id", "choice_option_id"],
+      "tableTo": "species_choice_options",
+      "columnsTo": ["choice_group_id", "id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_spells",
+      "name": "fk_character_spells_character_id_characters_id_fk",
+      "columns": ["character_id"],
+      "tableTo": "characters",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_spells",
+      "name": "fk_character_spells_spell_id_spells_id_fk",
+      "columns": ["spell_id"],
+      "tableTo": "spells",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_subclasses",
+      "name": "fk_character_subclasses_character_id_characters_id_fk",
+      "columns": ["character_id"],
+      "tableTo": "characters",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_subclasses",
+      "name": "fk_character_subclasses_subclass_id_subclasses_id_fk",
+      "columns": ["subclass_id"],
+      "tableTo": "subclasses",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_tool_proficiencies",
+      "name": "fk_character_tool_proficiencies_character_id_characters_id_fk",
+      "columns": ["character_id"],
+      "tableTo": "characters",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "characters",
+      "name": "fk_characters_species_id_species_id_fk",
+      "columns": ["species_id"],
+      "tableTo": "species",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "characters",
+      "name": "fk_characters_background_id_backgrounds_id_fk",
+      "columns": ["background_id"],
+      "tableTo": "backgrounds",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "characters",
+      "name": "fk_characters_class_id_classes_id_fk",
+      "columns": ["class_id"],
+      "tableTo": "classes",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "class_choice_groups",
+      "name": "fk_class_choice_groups_class_id_classes_id_fk",
+      "columns": ["class_id"],
+      "tableTo": "classes",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "class_choice_options",
+      "name": "fk_class_choice_options_choice_group_id_class_choice_groups_id_fk",
+      "columns": ["choice_group_id"],
+      "tableTo": "class_choice_groups",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "class_features",
+      "name": "fk_class_features_class_id_classes_id_fk",
+      "columns": ["class_id"],
+      "tableTo": "classes",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "class_features",
+      "name": "fk_class_features_subclass_id_subclasses_id_fk",
+      "columns": ["subclass_id"],
+      "tableTo": "subclasses",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "class_levels",
+      "name": "fk_class_levels_class_id_classes_id_fk",
+      "columns": ["class_id"],
+      "tableTo": "classes",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "species_choice_groups",
+      "name": "fk_species_choice_groups_species_id_species_id_fk",
+      "columns": ["species_id"],
+      "tableTo": "species",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "species_choice_option_to_features",
+      "name": "fk_species_choice_option_to_features_feature_id_features_id_fk",
+      "columns": ["feature_id"],
+      "tableTo": "features",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "species_choice_option_to_features",
+      "name": "fk_species_choice_option_to_features_choice_group_id_choice_option_id_species_choice_options_choice_group_id_id_fk",
+      "columns": ["choice_group_id", "choice_option_id"],
+      "tableTo": "species_choice_options",
+      "columnsTo": ["choice_group_id", "id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "species_choice_options",
+      "name": "fk_species_choice_options_choice_group_id_species_choice_groups_id_fk",
+      "columns": ["choice_group_id"],
+      "tableTo": "species_choice_groups",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "species_to_features",
+      "name": "fk_species_to_features_specie_id_species_id_fk",
+      "columns": ["specie_id"],
+      "tableTo": "species",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "species_to_features",
+      "name": "fk_species_to_features_feature_id_features_id_fk",
+      "columns": ["feature_id"],
+      "tableTo": "features",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "spell_classes",
+      "name": "fk_spell_classes_spell_id_spells_id_fk",
+      "columns": ["spell_id"],
+      "tableTo": "spells",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "spell_classes",
+      "name": "fk_spell_classes_class_id_classes_id_fk",
+      "columns": ["class_id"],
+      "tableTo": "classes",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "subclasses",
+      "name": "fk_subclasses_class_id_classes_id_fk",
+      "columns": ["class_id"],
+      "tableTo": "classes",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "character_class_choices",
+      "name": "character_class_choices_pk",
+      "columns": ["character_id", "choice_group_id", "choice_option_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "character_feats",
+      "name": "character_feats_pk",
+      "columns": ["character_id", "feat"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "character_items",
+      "name": "character_items_pk",
+      "columns": ["character_id", "item_id", "source"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "character_skill_proficiencies",
+      "name": "character_skill_proficiencies_pk",
+      "columns": ["character_id", "skill"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "character_species_choices",
+      "name": "character_species_choices_pk",
+      "columns": ["character_id", "choice_group_id", "choice_option_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "character_spells",
+      "name": "character_spells_pk",
+      "columns": ["character_id", "spell_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "character_tool_proficiencies",
+      "name": "character_tool_proficiencies_pk",
+      "columns": ["character_id", "tool"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "class_levels",
+      "name": "class_levels_pk",
+      "columns": ["class_id", "level"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "species_choice_option_to_features",
+      "name": "species_choice_option_to_features_pk",
+      "columns": ["choice_group_id", "choice_option_id", "feature_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "species_to_features",
+      "name": "species_to_features_pk",
+      "columns": ["specie_id", "feature_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "spell_classes",
+      "name": "spell_classes_pk",
+      "columns": ["spell_id", "class_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "background_details",
+      "name": "background_details_pk",
+      "columns": ["background_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "backgrounds",
+      "name": "backgrounds_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "character_background_choices",
+      "name": "character_background_choices_pk",
+      "columns": ["character_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "character_class_selections",
+      "name": "character_class_selections_pk",
+      "columns": ["character_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "character_subclasses",
+      "name": "character_subclasses_pk",
+      "columns": ["character_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "characters",
+      "name": "characters_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "class_choice_groups",
+      "name": "class_choice_groups_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "class_choice_options",
+      "name": "class_choice_options_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "class_features",
+      "name": "class_features_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "classes",
+      "name": "classes_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "features",
+      "name": "features_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "items",
+      "name": "items_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "species",
+      "name": "species_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "species_choice_groups",
+      "name": "species_choice_groups_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "species_choice_options",
+      "name": "species_choice_options_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "spells",
+      "name": "spells_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "subclasses",
+      "name": "subclasses_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "class_choice_groups",
+      "name": "class_choice_groups_choice_count_positive",
+      "value": "\"choice_count\" > 0",
+      "entityType": "checks"
+    },
+    {
+      "table": "class_levels",
+      "name": "class_levels_level_range",
+      "value": "\"level\" between 1 and 20",
+      "entityType": "checks"
+    },
+    {
+      "table": "species_choice_groups",
+      "name": "species_choice_groups_choice_count_positive",
+      "value": "\"choice_count\" > 0",
+      "entityType": "checks"
+    }
+  ],
+  "renames": []
+}

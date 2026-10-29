@@ -75,7 +75,25 @@ export const updateCharacterSchema = z
   })
   .refine((v) => Object.keys(v).length > 0, { message: "Body must not be empty" });
 
+export const levelUpSchema = z.object({
+  subclassId: refId.optional(),
+  abilityIncrease: z
+    .discriminatedUnion("mode", [
+      z.object({ mode: z.literal("split"), plusTwo: abilityName }),
+      z.object({ mode: z.literal("spread"), first: abilityName, second: abilityName }),
+      z.object({ mode: z.literal("feat"), feat: z.string().trim().min(1).max(100) }),
+    ])
+    .optional(),
+  expertise: names.optional(),
+  weaponMasteries: names.optional(),
+  cantrips: z.array(refId).optional(),
+  spellbook: z.array(refId).optional(),
+  preparedSpells: z.array(refId).optional(),
+  featureChoices: speciesChoices.optional(),
+});
+
 export type CreateCharacter = z.infer<typeof createCharacterSchema>;
+export type LevelUp = z.infer<typeof levelUpSchema>;
 export type UpdateCharacter = z.infer<typeof updateCharacterSchema>;
 export type BackgroundChoices = z.infer<typeof backgroundChoices>;
 export type ClassChoices = z.infer<typeof classChoices>;

@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, like, sql } from "drizzle-orm";
 import type { BetterSQLiteTransaction } from "drizzle-orm/better-sqlite3";
 import { HTTPException } from "hono/http-exception";
 import type { Db } from "../../db/client.ts";
@@ -11,11 +11,13 @@ import {
   characterItems,
   characterSkillProficiencies,
   characterSpeciesChoices,
+  characterSubclasses,
   characterToolProficiencies,
   characters,
   characterSpells,
   classChoiceGroups,
   classChoiceOptions,
+  classFeatures,
   classes,
   classLevels,
   items,
@@ -23,6 +25,7 @@ import {
   spells,
   speciesChoiceGroups,
   speciesChoiceOptions,
+  subclasses,
   relations,
 } from "../../db/schema.ts";
 import type { BackgroundAbilityScore } from "../../db/schema.ts";
@@ -31,6 +34,7 @@ import type {
   BackgroundChoices,
   ClassChoices,
   CreateCharacter,
+  LevelUp,
   UpdateCharacter,
 } from "./characters.schema.ts";
 
@@ -202,6 +206,286 @@ export class CharactersService {
     }
   }
 
+  levelUp(id: number, input: LevelUp) {
+    try {
+      return this.db.transaction((tx) => {
+        const current = tx.select().from(characters).where(eq(characters.id, id)).get();
+        if (!current) throw new HTTPException(404, { message: "Character not found" });
+        const level = current.level ?? 1;
+        if (level >= 20)
+          throw this.invalidClassChoices("Character is already at the maximum level");
+        const newLevel = level + 1;
+
+        const cls = tx.select().from(classes).where(eq(classes.id, current.classId)).get();
+        const selection = tx
+          .select()
+          .from(characterClassSelections)
+          .where(eq(characterClassSelections.characterId, id))
+          .get();
+        if (!cls || !selection) throw this.invalidClassChoices("Character has no class selection");
+        const levelRows = tx
+          .select()
+          .from(classLevels)
+          .where(
+            and(eq(classLevels.classId, cls.id), inArray(classLevels.level, [level, newLevel])),
+          )
+          .all();
+        const previous = levelRows.find((row) => row.level === level);
+        const next = levelRows.find((row) => row.level === newLevel);
+        const column = (row: typeof previous, name: string) => Number(row?.columns[name] ?? 0) || 0;
+
+        const classOnly = and(eq(classFeatures.classId, cls.id), isNull(classFeatures.subclassId));
+        const newFeatures = tx
+          .select()
+          .from(classFeatures)
+          .where(and(classOnly, eq(classFeatures.level, newLevel)))
+          .all();
+
+        this.applySubclass(tx, cls.id, id, newLevel, input.subclassId);
+        const scores = this.applyLevelUpAbility(tx, current, newFeatures, input.abilityIncrease);
+
+        const exact = <T>(values: T[], count: number, label: string) => {
+          if (values.length !== count || new Set(values).size !== count) {
+            throw this.invalidClassChoices(`Choose ${count} different ${label}`);
+          }
+        };
+
+        const expertiseGain = newFeatures.some((feature) => feature.name === "Expertise") ? 2 : 0;
+        const expertise = input.expertise ?? [];
+        exact(expertise, expertiseGain, "proficiencies for Expertise");
+        const expertiseOptions = [
+          ...this.readSkills(tx, id),
+          ...selection.skills,
+          ...selection.tools,
+          ...cls.toolProficiencies,
+        ];
+        if (
+          expertise.some(
+            (entry) => !expertiseOptions.includes(entry) || selection.expertise.includes(entry),
+          )
+        ) {
+          throw this.invalidClassChoices(
+            "Choose proficiencies you do not already have Expertise in",
+          );
+        }
+
+        const masteryGain = Math.max(
+          column(next, "Weapon Mastery") - column(previous, "Weapon Mastery"),
+          0,
+        );
+        const masteries = input.weaponMasteries ?? [];
+        exact(masteries, masteryGain, "weapons for Weapon Mastery");
+        if (masteries.some((weapon) => selection.weaponMasteries.includes(weapon))) {
+          throw this.invalidClassChoices("Choose weapons you have not mastered yet");
+        }
+
+        const featureChoices = input.featureChoices ?? [];
+        const extraCantrips = this.validateClassFeatureChoices(
+          tx,
+          cls.id,
+          featureChoices,
+          newLevel,
+        );
+
+        const spellRows = this.validateLevelUpSpells(tx, cls, id, input, {
+          cantrips: column(next, "Cantrips") - column(previous, "Cantrips") + extraCantrips,
+          prepared: column(next, "Prepared Spells") - column(previous, "Prepared Spells"),
+          maxSpellLevel: next?.spellSlots?.length ?? 0,
+        });
+
+        tx.update(characters)
+          .set({ level: newLevel, ...scores })
+          .where(eq(characters.id, id))
+          .run();
+        if (expertise.length > 0 || masteries.length > 0) {
+          tx.update(characterClassSelections)
+            .set({
+              expertise: [...selection.expertise, ...expertise],
+              weaponMasteries: [...selection.weaponMasteries, ...masteries],
+            })
+            .where(eq(characterClassSelections.characterId, id))
+            .run();
+        }
+        if (featureChoices.length > 0) {
+          tx.insert(characterClassChoices)
+            .values(featureChoices.map((choice) => ({ characterId: id, ...choice })))
+            .run();
+        }
+        for (const row of spellRows) {
+          tx.insert(characterSpells)
+            .values({ characterId: id, ...row })
+            .onConflictDoUpdate({
+              target: [characterSpells.characterId, characterSpells.spellId],
+              set: { prepared: row.prepared },
+            })
+            .run();
+        }
+        return this.getWithChoices(tx, id);
+      });
+    } catch (err) {
+      throw this.mapError(err);
+    }
+  }
+
+  private applySubclass(
+    tx: Transaction,
+    classId: number,
+    characterId: number,
+    newLevel: number,
+    subclassId: number | undefined,
+  ) {
+    const existing = tx
+      .select()
+      .from(characterSubclasses)
+      .where(eq(characterSubclasses.characterId, characterId))
+      .get();
+    const subclassLevel = tx
+      .select({ level: sql<number>`min(${classFeatures.level})` })
+      .from(classFeatures)
+      .where(
+        and(
+          eq(classFeatures.classId, classId),
+          isNull(classFeatures.subclassId),
+          like(classFeatures.name, "% Subclass"),
+        ),
+      )
+      .get()?.level;
+    const required = !existing && subclassLevel != null && newLevel >= subclassLevel;
+    if (!required) {
+      if (subclassId !== undefined) {
+        throw this.invalidClassChoices("A subclass cannot be chosen at this level");
+      }
+      return;
+    }
+    const valid =
+      subclassId !== undefined &&
+      tx
+        .select({ id: subclasses.id })
+        .from(subclasses)
+        .where(and(eq(subclasses.id, subclassId), eq(subclasses.classId, classId)))
+        .get();
+    if (!valid) throw this.invalidClassChoices("Choose a subclass from this class");
+    tx.insert(characterSubclasses).values({ characterId, subclassId: subclassId! }).run();
+  }
+
+  private applyLevelUpAbility(
+    tx: Transaction,
+    current: typeof characters.$inferSelect,
+    features: { name: string }[],
+    increase: LevelUp["abilityIncrease"],
+  ): Partial<Scores> | undefined {
+    const epicBoon = features.some((feature) => feature.name === "Epic Boon");
+    const improvement = features.some((feature) => feature.name === "Ability Score Improvement");
+    if (!epicBoon && !improvement) {
+      if (increase) throw this.invalidClassChoices("No ability score increase at this level");
+      return undefined;
+    }
+    if (!increase) throw this.invalidClassChoices("Choose an ability score increase or a feat");
+
+    if (increase.mode === "feat") {
+      tx.insert(characterFeats)
+        .values({ characterId: current.id, feat: increase.feat })
+        .onConflictDoNothing()
+        .run();
+      return undefined;
+    }
+    if (epicBoon) throw this.invalidClassChoices("Choose an Epic Boon feat");
+
+    const changes =
+      increase.mode === "split"
+        ? [[increase.plusTwo, 2] as const]
+        : [[increase.first, 1] as const, [increase.second, 1] as const];
+    if (new Set(changes.map(([name]) => name)).size !== changes.length) {
+      throw this.invalidClassChoices("Choose different abilities to increase");
+    }
+    const scores: Partial<Scores> = {};
+    for (const [name, amount] of changes) {
+      const key = abilityKeys[name];
+      const value = current[key] + amount;
+      if (value > MAX_ABILITY_SCORE) {
+        throw this.invalidClassChoices(`Ability scores cannot exceed ${MAX_ABILITY_SCORE}`);
+      }
+      scores[key] = value;
+    }
+    return scores;
+  }
+
+  private validateLevelUpSpells(
+    tx: Transaction,
+    cls: typeof classes.$inferSelect,
+    characterId: number,
+    input: LevelUp,
+    gains: { cantrips: number; prepared: number; maxSpellLevel: number },
+  ) {
+    const cantrips = input.cantrips ?? [];
+    const spellbook = input.spellbook ?? [];
+    const prepared = input.preparedSpells ?? [];
+    const hasSpellbook = cls.spellbookCount > 0;
+    const spellbookGain = hasSpellbook ? 2 : 0;
+    const preparedGain = Math.max(gains.prepared, 0);
+    const cantripGain = Math.max(gains.cantrips, 0);
+    const check = (ids: number[], count: number, label: string) => {
+      if (ids.length !== count || new Set(ids).size !== count) {
+        throw this.invalidClassChoices(`Choose ${count} different ${label}`);
+      }
+    };
+    check(cantrips, cantripGain, "cantrips");
+    check(spellbook, spellbookGain, "spellbook spells");
+    check(prepared, preparedGain, "prepared spells");
+
+    const known = tx
+      .select()
+      .from(characterSpells)
+      .where(eq(characterSpells.characterId, characterId))
+      .all();
+    const knownIds = new Set(known.map((row) => row.spellId));
+    const preparedIds = new Set(known.filter((row) => row.prepared).map((row) => row.spellId));
+    if ([...cantrips, ...spellbook].some((spellId) => knownIds.has(spellId))) {
+      throw this.invalidClassChoices("Choose spells the character does not know yet");
+    }
+    if (prepared.some((spellId) => preparedIds.has(spellId))) {
+      throw this.invalidClassChoices("Choose spells that are not already prepared");
+    }
+    const available = new Set([...knownIds, ...spellbook]);
+    if (hasSpellbook ? prepared.some((spellId) => !available.has(spellId)) : false) {
+      throw this.invalidClassChoices("Prepared spells must come from the spellbook");
+    }
+    if (!hasSpellbook && prepared.some((spellId) => knownIds.has(spellId))) {
+      throw this.invalidClassChoices("Choose spells the character does not know yet");
+    }
+
+    const all = [...new Set([...cantrips, ...spellbook, ...prepared])];
+    if (all.length === 0) return [];
+    const onList = tx
+      .select({ id: spells.id, level: spells.level })
+      .from(spells)
+      .innerJoin(spellClasses, eq(spellClasses.spellId, spells.id))
+      .where(and(eq(spellClasses.classId, cls.id), inArray(spells.id, all)))
+      .all();
+    const levels = new Map(onList.map((spell) => [spell.id, spell.level]));
+    if (cantrips.some((spellId) => levels.get(spellId) !== 0)) {
+      throw this.invalidClassChoices("Choose cantrips from the class spell list");
+    }
+    const leveled = [...spellbook, ...prepared];
+    if (
+      leveled.some((spellId) => {
+        const spellLevel = levels.get(spellId);
+        return spellLevel === undefined || spellLevel < 1 || spellLevel > gains.maxSpellLevel;
+      })
+    ) {
+      throw this.invalidClassChoices(
+        `Choose spells of level 1 to ${gains.maxSpellLevel} from the class spell list`,
+      );
+    }
+
+    const newPrepared = new Set([...cantrips, ...prepared]);
+    const learned = [...cantrips, ...(hasSpellbook ? spellbook : []), ...prepared];
+    return [...new Set(learned)].map((spellId) => ({
+      spellId,
+      prepared: newPrepared.has(spellId),
+    }));
+  }
+
   remove(id: number) {
     this.db.transaction((tx) => {
       tx.delete(characterItems).where(eq(characterItems.characterId, id)).run();
@@ -209,6 +493,7 @@ export class CharactersService {
       tx.delete(characterSpeciesChoices).where(eq(characterSpeciesChoices.characterId, id)).run();
       tx.delete(characterClassChoices).where(eq(characterClassChoices.characterId, id)).run();
       tx.delete(characterClassSelections).where(eq(characterClassSelections.characterId, id)).run();
+      tx.delete(characterSubclasses).where(eq(characterSubclasses.characterId, id)).run();
       tx.delete(characterBackgroundChoices)
         .where(eq(characterBackgroundChoices.characterId, id))
         .run();
@@ -538,11 +823,12 @@ export class CharactersService {
     tx: Transaction,
     classId: number,
     choices: SpeciesChoice[],
+    level = 1,
   ): number {
     const groups = tx
       .select()
       .from(classChoiceGroups)
-      .where(and(eq(classChoiceGroups.classId, classId), eq(classChoiceGroups.level, 1)))
+      .where(and(eq(classChoiceGroups.classId, classId), eq(classChoiceGroups.level, level)))
       .all();
     let extraCantrips = 0;
     for (const group of groups) {
@@ -654,11 +940,11 @@ export class CharactersService {
       .where(eq(characterClassChoices.characterId, characterId))
       .run();
     tx.delete(characterSpells).where(eq(characterSpells.characterId, characterId)).run();
+    tx.delete(characterSubclasses).where(eq(characterSubclasses.characterId, characterId)).run();
     tx.delete(characterClassSelections)
       .where(eq(characterClassSelections.characterId, characterId))
       .run();
   }
-
   private readSkills(reader: Reader, characterId: number): string[] {
     return reader
       .select({ skill: characterSkillProficiencies.skill })
@@ -844,7 +1130,14 @@ export class CharactersService {
       .orderBy(spells.level, spells.name)
       .all();
     const sorted = (values: string[]) => [...new Set(values)].sort();
+    const subclassId =
+      reader
+        .select({ subclassId: characterSubclasses.subclassId })
+        .from(characterSubclasses)
+        .where(eq(characterSubclasses.characterId, characterId))
+        .get()?.subclassId ?? null;
     return {
+      subclassId,
       speciesChoices,
       backgroundChoices,
       classChoices,

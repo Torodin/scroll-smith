@@ -322,6 +322,15 @@ export const characterClassSelections = sqliteTable("character_class_selections"
   weaponMasteries: text("weapon_masteries", { mode: "json" }).$type<string[]>().notNull(),
 });
 
+export const characterSubclasses = sqliteTable("character_subclasses", {
+  characterId: integer("character_id")
+    .primaryKey()
+    .references(() => characters.id),
+  subclassId: integer("subclass_id")
+    .notNull()
+    .references(() => subclasses.id),
+});
+
 export const characterClassChoices = sqliteTable(
   "character_class_choices",
   {
@@ -431,6 +440,7 @@ export const relations = defineRelations(
     characterBackgroundChoices,
     characterClassChoices,
     characterClassSelections,
+    characterSubclasses,
     classChoiceGroups,
     classChoiceOptions,
     classFeatures,
