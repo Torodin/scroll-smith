@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ClassDetail, DashboardData } from "../core/types";
-import DeleteCharacterDialog from "./DeleteCharacterDialog";
-import { optionName } from "./option-name";
+import type { ClassDetail, DashboardData, SpellOption } from "../../core/types";
+import DeleteCharacterDialog from "../DeleteCharacterDialog";
+import PrintCardsModal from "../PrintCardsModal/PrintCardsModal";
+import { optionName } from "../option-name";
+import "./CharacterDetail.css";
 
 function CharacterDetail({
   data,
@@ -9,14 +11,17 @@ function CharacterDetail({
   onBack,
   onDelete,
   loadClass,
+  loadSpells,
 }: {
   data: DashboardData;
   characterId: number;
   onBack: () => void;
   onDelete: (characterId: number) => Promise<void>;
   loadClass: (classId: number) => Promise<ClassDetail>;
+  loadSpells: (classId: number) => Promise<SpellOption[]>;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [activeTab, setActiveTab] = useState("inventory");
   const [classDetail, setClassDetail] = useState<ClassDetail | null>(null);
   const [classLoadError, setClassLoadError] = useState<string | null>(null);
@@ -65,6 +70,26 @@ function CharacterDetail({
     );
   }, [character, data.species]);
 
+  const printFeatures = useMemo(() => {
+    if (!character) return [];
+    const className = optionName(data.classes, character.classId);
+    const speciesName = optionName(data.species, character.speciesId);
+    return [
+      ...classFeatures.map((feature) => ({
+        key: `c${feature.id}`,
+        name: feature.name,
+        description: feature.description,
+        source: className,
+      })),
+      ...speciesTraits.map((trait) => ({
+        key: `t${trait.id}`,
+        name: trait.name,
+        description: trait.description,
+        source: speciesName,
+      })),
+    ];
+  }, [character, classFeatures, speciesTraits, data.classes, data.species]);
+
   const tabs = ["inventory", "spells", "features", "background"] as const;
 
   if (!character) {
@@ -110,10 +135,21 @@ function CharacterDetail({
             {optionName(data.backgrounds, character.backgroundId)}
           </p>
         </div>
+        <button className="button button-primary" type="button" onClick={() => setPrinting(true)}>
+          Print cards
+        </button>
         <button className="button button-danger" type="button" onClick={() => setConfirming(true)}>
           Delete character
         </button>
       </div>
+      {printing ? (
+        <PrintCardsModal
+          characterSpells={character.spells}
+          features={printFeatures}
+          loadSpells={() => loadSpells(character.classId)}
+          onClose={() => setPrinting(false)}
+        />
+      ) : null}
       {confirming ? (
         <DeleteCharacterDialog
           name={character.name}

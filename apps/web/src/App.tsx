@@ -10,7 +10,7 @@ import type {
 } from "./core/types";
 import CharacterCreation from "./components/CharacterCreation";
 import type { CharacterCreationInput } from "./components/CharacterCreation";
-import CharacterDetail from "./components/CharacterDetail";
+import CharacterDetail from "./components/CharacterDetail/CharacterDetail";
 import Dashboard from "./components/Dashboard";
 import "./App.css";
 
@@ -182,6 +182,7 @@ function App() {
               onBack={() => setPage({ name: "dashboard" })}
               onDelete={deleteCharacter}
               loadClass={(id) => request<ClassDetail>(`/classes/${id}`)}
+              loadSpells={(classId) => request<SpellOption[]>(`/spells?classId=${classId}`)}
             />
           )
         ) : null}
