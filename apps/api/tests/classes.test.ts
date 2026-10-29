@@ -34,3 +34,57 @@ test("every class exposes levels, features, a subclass and creation data", async
   expect(fighter.choiceGroups[0]).toMatchObject({ name: "Fighting Style" });
   expect(fighter.choiceGroups[0].options).toHaveLength(4);
 });
+
+const json = (body: unknown) => ({
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+test("class CRUD", async () => {
+  const app = createApp(createDb(":memory:"));
+  const payload = {
+    name: "Artificer",
+    description: "Inventor",
+    hitPointDie: 8,
+    savingThrows: ["Constitution", "Intelligence"],
+    levels: [{ level: 1, proficiencyBonus: 2, columns: { Features: "Spellcasting" } }],
+    features: [{ level: 1, name: "Tinker", description: "Tinkering" }],
+    subclasses: [
+      {
+        name: "Alchemist",
+        description: "Potions",
+        features: [{ level: 3, name: "Elixir", description: "x" }],
+      },
+    ],
+    choiceGroups: [{ name: "Style", description: "d", options: [{ name: "A", description: "a" }] }],
+  };
+
+  expect((await app.request("/classes", json({ name: "" }))).status).toBe(400);
+  const res = await app.request("/classes", json(payload));
+  expect(res.status).toBe(201);
+  const created = (await res.json()) as ClassDetail;
+  expect(created).toMatchObject({ name: "Artificer", hitPointDie: 8 });
+  expect(created.levels).toHaveLength(1);
+  expect(created.features).toHaveLength(1);
+  expect(created.subclasses[0].features).toHaveLength(1);
+  expect(created.choiceGroups[0].options).toHaveLength(1);
+
+  const patch = (body: unknown) =>
+    app.request(`/classes/${created.id}`, { ...json(body), method: "PATCH" });
+  expect((await patch({})).status).toBe(400);
+  const updated = (await (await patch({ name: "Tinker", subclasses: [] })).json()) as ClassDetail;
+  expect(updated.name).toBe("Tinker");
+  expect(updated.subclasses).toHaveLength(0);
+  expect(updated.features).toHaveLength(1);
+  expect(updated.levels).toHaveLength(1);
+  expect(
+    (await app.request("/classes/999", { ...json({ name: "x" }), method: "PATCH" })).status,
+  ).toBe(404);
+
+  expect((await app.request(`/classes/${created.id}`, { method: "DELETE" })).status).toBe(204);
+  expect((await app.request(`/classes/${created.id}`)).status).toBe(404);
+  expect((await app.request(`/classes/${created.id}`, { method: "DELETE" })).status).toBe(404);
+  // Seeded classes are referenced by spells
+  expect((await app.request("/classes/12", { method: "DELETE" })).status).toBe(409);
+});
