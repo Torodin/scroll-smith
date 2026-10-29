@@ -13,9 +13,11 @@ import ClassStep, {
   validateClassSelection,
 } from "./ClassStep";
 import type { ClassSelection } from "./ClassStep";
+import AbilityStep, { emptyAbilityState, resolveAbilityScores } from "./AbilityStep";
+import type { AbilityState, Scores } from "./AbilityStep";
 import { optionName } from "./option-name";
 
-export type CharacterCreationInput = {
+export type CharacterCreationInput = Partial<Scores> & {
   name: string;
   speciesId: number;
   backgroundId: number;
@@ -56,6 +58,7 @@ function CharacterCreation({
   const [abilityMode, setAbilityMode] = useState<"split" | "even">("split");
   const [plusTwo, setPlusTwo] = useState("");
   const [plusOne, setPlusOne] = useState("");
+  const [abilities, setAbilities] = useState<AbilityState>(emptyAbilityState);
   const [gamingSet, setGamingSet] = useState("");
   const [equipment, setEquipment] = useState<"package" | "gold">("package");
   const selectedSpecies = data.species.find((species) => String(species.id) === speciesId);
@@ -71,6 +74,13 @@ function CharacterCreation({
       const classError = validateClassSelection(classDetail, classSelection, backgroundSkills);
       if (classError || !classDetail) {
         setError(classError ?? "Choose a class to continue.");
+        return;
+      }
+    }
+    if (step === 5) {
+      const result = resolveAbilityScores(abilities);
+      if (typeof result === "string") {
+        setError(result);
         return;
       }
     }
@@ -109,7 +119,7 @@ function CharacterCreation({
       }
     }
 
-    if (step < 4) {
+    if (step < 5) {
       setStep((current) => current + 1);
       setError(null);
       return;
@@ -119,6 +129,7 @@ function CharacterCreation({
     setError(null);
     try {
       await onCreate({
+        ...(resolveAbilityScores(abilities) as Scores),
         name: name.trim(),
         speciesId: Number(speciesId),
         backgroundId: Number(backgroundId),
@@ -167,8 +178,8 @@ function CharacterCreation({
         <p>Choose the foundations of your hero. You can build on them as you play.</p>
       </div>
 
-      <div className="stepper" aria-label={`Step ${step} of 4`}>
-        {["Name", "Species", "Background", "Class"].map((label, index) => {
+      <div className="stepper" aria-label={`Step ${step} of 5`}>
+        {["Name", "Species", "Background", "Class", "Abilities"].map((label, index) => {
           const number = index + 1;
           return (
             <div className={`step ${number <= step ? "step-active" : ""}`} key={label}>
@@ -510,9 +521,36 @@ function CharacterCreation({
               )}
             </fieldset>
           </div>
+        ) : step === 5 ? (
+          <div className="form-step">
+            <p className="step-kicker">Step 5 of 5</p>
+            <h2>How strong are their abilities?</h2>
+            <p className="form-intro">
+              Set the base ability scores. Background increases are applied on top.
+            </p>
+            <AbilityStep
+              state={abilities}
+              onChange={(next) => {
+                setAbilities(next);
+                setError(null);
+              }}
+            />
+            <div className="creation-summary">
+              <span className="summary-avatar" aria-hidden="true">
+                {name.trim().charAt(0).toUpperCase()}
+              </span>
+              <span>
+                <strong>{name.trim()}</strong>
+                <span className="summary-meta">
+                  {optionName(data.species, Number(speciesId))} ·{" "}
+                  {optionName(data.backgrounds, Number(backgroundId))}
+                </span>
+              </span>
+            </div>
+          </div>
         ) : (
           <div className="form-step">
-            <p className="step-kicker">Step 4 of 4</p>
+            <p className="step-kicker">Step 4 of 5</p>
             <h2>What is their calling?</h2>
             <p className="form-intro">Choose the class that guides their adventures.</p>
             <ClassStep
@@ -527,18 +565,6 @@ function CharacterCreation({
               onDetail={setClassDetail}
               selection={classSelection}
             />
-            <div className="creation-summary">
-              <span className="summary-avatar" aria-hidden="true">
-                {name.trim().charAt(0).toUpperCase()}
-              </span>
-              <span>
-                <strong>{name.trim()}</strong>
-                <span className="summary-meta">
-                  {optionName(data.species, Number(speciesId))} ·{" "}
-                  {optionName(data.backgrounds, Number(backgroundId))}
-                </span>
-              </span>
-            </div>
           </div>
         )}
 
@@ -566,8 +592,8 @@ function CharacterCreation({
             </button>
           )}
           <button className="button button-primary" type="submit" disabled={saving}>
-            {saving ? "Creating..." : step === 4 ? "Create character" : "Continue"}
-            {!saving && step < 4 ? <span aria-hidden="true">→</span> : null}
+            {saving ? "Creating..." : step === 5 ? "Create character" : "Continue"}
+            {!saving && step < 5 ? <span aria-hidden="true">→</span> : null}
           </button>
         </div>
       </form>

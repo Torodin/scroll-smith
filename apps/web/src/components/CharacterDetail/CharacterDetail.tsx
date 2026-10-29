@@ -170,7 +170,7 @@ function CharacterDetail({
                 <strong>
                   {getModifier(ability.score) >= 0
                     ? `+${getModifier(ability.score)}`
-                    : `-${getModifier(ability.score)}`}
+                    : `${getModifier(ability.score)}`}
                 </strong>
                 <strong>{ability.score}</strong>
               </div>
