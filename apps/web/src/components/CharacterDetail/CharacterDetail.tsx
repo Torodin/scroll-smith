@@ -4,6 +4,8 @@ import DeleteCharacterDialog from "../DeleteCharacterDialog";
 import PrintCardsModal from "../PrintCardsModal/PrintCardsModal";
 import { optionName } from "../option-name";
 import "./CharacterDetail.css";
+import { getModifier, getPassiveSkill, getProficiencyBonus } from "../../core/calculations";
+import type AbilityScoreName from "./types/ability-score-name";
 
 function CharacterDetail({
   data,
@@ -104,13 +106,13 @@ function CharacterDetail({
     );
   }
 
-  const abilities = [
-    ["Strength", character.str],
-    ["Dexterity", character.dex],
-    ["Constitution", character.con],
-    ["Intelligence", character.int],
-    ["Wisdom", character.wis],
-    ["Charisma", character.cha],
+  const abilities: AbilityScoreName[] = [
+    { name: "Strength", score: character.str },
+    { name: "Dexterity", score: character.dex },
+    { name: "Constitution", score: character.con },
+    { name: "Intelligence", score: character.int },
+    { name: "Wisdom", score: character.wis },
+    { name: "Charisma", score: character.cha },
   ];
   const background = data.backgrounds.find((item) => item.id === character.backgroundId);
 
@@ -160,15 +162,65 @@ function CharacterDetail({
 
       <div className="detail-grid">
         <section className="detail-panel detail-panel-wide">
-          <p className="eyebrow">Ability scores</p>
           <h2>Core abilities</h2>
           <div className="ability-grid">
-            {abilities.map(([ability, score]) => (
-              <div className="ability-card" key={ability}>
-                <span>{ability}</span>
-                <strong>{score}</strong>
+            {abilities.map((ability) => (
+              <div className="ability-card" key={ability.name}>
+                <span>{ability.name}</span>
+                <strong>
+                  {getModifier(ability.score) >= 0
+                    ? `+${getModifier(ability.score)}`
+                    : `-${getModifier(ability.score)}`}
+                </strong>
+                <strong>{ability.score}</strong>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="detail-panel">
+          <h2>Proficiency bonus</h2>
+          <div className="ability-card">
+            <strong>+{getProficiencyBonus(character.level)}</strong>
+          </div>
+        </section>
+
+        <section className="detail-panel detail-panel-mid-right">
+          <h2>Senses</h2>
+          <div className="sense-grid">
+            <div className="ability-card">
+              <span>Passive perception</span>
+              <strong>
+                {getPassiveSkill(
+                  character.wis,
+                  "Perception",
+                  character.skillProficiencies,
+                  character.level,
+                )}
+              </strong>
+            </div>
+            <div className="ability-card">
+              <span>Passive investigation</span>
+              <strong>
+                {getPassiveSkill(
+                  character.int,
+                  "Investigation",
+                  character.skillProficiencies,
+                  character.level,
+                )}
+              </strong>
+            </div>
+            <div className="ability-card">
+              <span>Passive insight</span>
+              <strong>
+                {getPassiveSkill(
+                  character.wis,
+                  "Insight",
+                  character.skillProficiencies,
+                  character.level,
+                )}
+              </strong>
+            </div>
           </div>
         </section>
 

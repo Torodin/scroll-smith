@@ -47,7 +47,7 @@
 
 .detail-grid {
   display: grid;
-  grid-template-columns: 1fr 1.15fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
 }
 
@@ -60,6 +60,14 @@
 
 .detail-panel h2 {
   margin-bottom: 22px;
+}
+
+.detail-panel-mid-left {
+  grid-column: 1 / 3;
+}
+
+.detail-panel-mid-right {
+  grid-column: 2 / 4;
 }
 
 .detail-panel-wide {
@@ -191,6 +199,12 @@
   font-size: 12px;
   font-weight: 650;
   text-align: right;
+}
+
+.sense-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
 }
 
 .ability-grid {
