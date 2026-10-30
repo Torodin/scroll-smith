@@ -51,6 +51,43 @@
   font-size: 13px;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.class-editor-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.class-editor-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+}
+
+.class-editor-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.class-editor-row .field {
+  margin-bottom: 0;
+}
+
+.class-editor-grow {
+  flex: 1 1 160px;
+}
+
+.class-editor-add {
+  justify-self: start;
+}
+
 .topbar-spells-button {
   min-height: 38px;
   padding: 0 12px;

@@ -14,6 +14,8 @@ import type { CharacterCreationInput } from "./components/CharacterCreation";
 import CharacterDetail from "./components/CharacterDetail/CharacterDetail";
 import LevelUp from "./components/LevelUp";
 import SpellEditor from "./components/SpellEditor";
+import ClassEditor from "./components/ClassEditor";
+import type { ClassUpdateInput } from "./components/ClassEditor";
 import { optionName } from "./components/option-name";
 import Dashboard from "./components/Dashboard";
 import "./App.css";
@@ -22,6 +24,7 @@ type Page =
   | { name: "dashboard" }
   | { name: "create" }
   | { name: "spells" }
+  | { name: "classes" }
   | { name: "detail"; characterId: number }
   | { name: "levelUp"; characterId: number };
 
@@ -67,6 +70,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 const loadClass = (id: number) => request<ClassDetail>(`/classes/${id}`);
+const updateClass = (id: number, input: ClassUpdateInput) =>
+  request<ClassDetail>(`/classes/${id}`, { method: "PATCH", body: JSON.stringify(input) });
 const loadAllSpells = (classId: number) => request<SpellOption[]>(`/spells?classId=${classId}`);
 const loadSpellCatalog = () => request<SpellOption[]>("/spells");
 
@@ -176,14 +181,24 @@ function App() {
           <span>Scroll Smith</span>
         </button>
         <span className="topbar-note">Your characters, ready for adventure</span>
-        <button
-          className="button button-secondary topbar-spells-button"
-          type="button"
-          aria-current={page.name === "spells" ? "page" : undefined}
-          onClick={() => setPage({ name: "spells" })}
-        >
-          Manage spells
-        </button>
+        <div className="topbar-actions">
+          <button
+            className="button button-secondary topbar-spells-button"
+            type="button"
+            aria-current={page.name === "classes" ? "page" : undefined}
+            onClick={() => setPage({ name: "classes" })}
+          >
+            Manage classes
+          </button>
+          <button
+            className="button button-secondary topbar-spells-button"
+            type="button"
+            aria-current={page.name === "spells" ? "page" : undefined}
+            onClick={() => setPage({ name: "spells" })}
+          >
+            Manage spells
+          </button>
+        </div>
       </header>
 
       <main className="main-content">
@@ -230,6 +245,24 @@ function App() {
               createSpell={createSpell}
               updateSpell={updateSpell}
               deleteSpell={deleteSpell}
+            />
+          ) : page.name === "classes" ? (
+            <ClassEditor
+              classes={data.classes}
+              loadClass={loadClass}
+              updateClass={updateClass}
+              onSaved={(saved) =>
+                setData((current) =>
+                  current
+                    ? {
+                        ...current,
+                        classes: current.classes
+                          .map((item) => (item.id === saved.id ? { ...item, ...saved } : item))
+                          .sort((a, b) => a.name.localeCompare(b.name)),
+                      }
+                    : current,
+                )
+              }
             />
           ) : page.name === "levelUp" ? (
             (() => {
