@@ -14,6 +14,8 @@ import type { CharacterCreationInput } from "./components/CharacterCreation";
 import CharacterDetail from "./components/CharacterDetail/CharacterDetail";
 import LevelUp from "./components/LevelUp";
 import SpellEditor from "./components/SpellEditor";
+import BackgroundEditor from "./components/BackgroundEditor";
+import type { BackgroundMutation } from "./components/BackgroundEditor";
 import ClassEditor from "./components/ClassEditor";
 import type { ClassUpdateInput } from "./components/ClassEditor";
 import { optionName } from "./components/option-name";
@@ -25,6 +27,7 @@ type Page =
   | { name: "create" }
   | { name: "spells" }
   | { name: "classes" }
+  | { name: "backgrounds" }
   | { name: "detail"; characterId: number }
   | { name: "levelUp"; characterId: number };
 
@@ -82,6 +85,12 @@ const createSpell = (input: SpellMutation) =>
 const updateSpell = (id: number, input: SpellMutation) =>
   request<SpellOption>(`/spells/${id}`, { method: "PATCH", body: JSON.stringify(input) });
 const deleteSpell = (id: number) => request<void>(`/spells/${id}`, { method: "DELETE" });
+
+const createBackground = (input: BackgroundMutation) =>
+  request<BackgroundOption>("/backgrounds", { method: "POST", body: JSON.stringify(input) });
+const updateBackground = (id: number, input: BackgroundMutation) =>
+  request<BackgroundOption>(`/backgrounds/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+const deleteBackground = (id: number) => request<void>(`/backgrounds/${id}`, { method: "DELETE" });
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
@@ -193,6 +202,14 @@ function App() {
           <button
             className="button button-secondary topbar-spells-button"
             type="button"
+            aria-current={page.name === "backgrounds" ? "page" : undefined}
+            onClick={() => setPage({ name: "backgrounds" })}
+          >
+            Manage backgrounds
+          </button>
+          <button
+            className="button button-secondary topbar-spells-button"
+            type="button"
             aria-current={page.name === "spells" ? "page" : undefined}
             onClick={() => setPage({ name: "spells" })}
           >
@@ -245,6 +262,16 @@ function App() {
               createSpell={createSpell}
               updateSpell={updateSpell}
               deleteSpell={deleteSpell}
+            />
+          ) : page.name === "backgrounds" ? (
+            <BackgroundEditor
+              backgrounds={data.backgrounds}
+              createBackground={createBackground}
+              updateBackground={updateBackground}
+              deleteBackground={deleteBackground}
+              onChange={(backgrounds) =>
+                setData((current) => (current ? { ...current, backgrounds } : current))
+              }
             />
           ) : page.name === "classes" ? (
             <ClassEditor
